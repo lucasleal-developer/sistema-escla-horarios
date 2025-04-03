@@ -94,6 +94,13 @@ export function getActivityColor(activity: string | ActivityType): ActivityColor
           text: "text-slate-800",
           dot: "bg-slate-500"
         };
+      case "disponivel_horario":
+        return {
+          bg: "bg-gray-100",
+          hoverBg: "hover:bg-gray-200",
+          text: "text-gray-800",
+          dot: "bg-gray-400"
+        };
       default:
         return defaultColor;
     }
@@ -122,7 +129,7 @@ export const activityNames: Record<string, string> = {
   "evento": "Evento",
   "ferias": "Férias",
   "licenca": "Licença",
-  "disponivel": "Disponível"
+  "disponivel_horario": "Disponível"
 };
 
 // Obter nome de uma atividade

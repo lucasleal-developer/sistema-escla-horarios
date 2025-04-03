@@ -186,18 +186,18 @@ export function EditScheduleModal({
             <Select 
               onValueChange={handleActivityChange}
               value={selectedActivity}
-              defaultValue={currentActivity?.atividade || "disponivel"}
+              defaultValue={currentActivity?.atividade || "disponivel_horario"}
             >
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Selecione uma atividade" />
               </SelectTrigger>
               <SelectContent>
                 {/* Opção padrão para disponível */}
-                <SelectItem value="disponivel">Disponível</SelectItem>
+                <SelectItem value="disponivel_horario">Disponível</SelectItem>
                 
                 {/* Tipos de atividade do banco de dados */}
                 {Array.isArray(activityTypes) && activityTypes.map((activity: any) => (
-                  <SelectItem key={activity.id} value={activity.code}>
+                  <SelectItem key={activity.id || activity.code} value={activity.code}>
                     {activity.name}
                   </SelectItem>
                 ))}
