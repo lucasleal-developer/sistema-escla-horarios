@@ -145,53 +145,54 @@ export function ScheduleTable({
   
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-      {/* Controles para seleção múltipla */}
-      <div className="bg-gray-50 p-3 border-b flex flex-wrap items-center gap-2">
+      {/* Controles para seleção múltipla - agora com o botão de ativar à direita */}
+      <div className="bg-gray-50 p-3 border-b flex flex-wrap items-center justify-between gap-2 sticky top-0 z-20">
+        <div className="flex items-center gap-2">
+          {isSelectionMode && (
+            <>
+              <span className="text-sm text-gray-500">
+                {selectedCells.length} células selecionadas
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                disabled={selectedCells.length === 0}
+              >
+                Limpar seleção
+              </Button>
+              
+              <Button
+                variant="default"
+                size="sm"
+                onClick={editSelectedCells}
+                disabled={selectedCells.length === 0}
+              >
+                Editar selecionados
+              </Button>
+            </>
+          )}
+        </div>
+        
         <Button
           variant={isSelectionMode ? "default" : "outline"}
           size="sm"
           onClick={() => setIsSelectionMode(!isSelectionMode)}
-          className="mr-2"
         >
           {isSelectionMode ? "Desativar seleção" : "Ativar seleção múltipla"}
         </Button>
-        
-        {isSelectionMode && (
-          <>
-            <span className="text-sm text-gray-500 mr-2">
-              {selectedCells.length} células selecionadas
-            </span>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearSelection}
-              disabled={selectedCells.length === 0}
-            >
-              Limpar seleção
-            </Button>
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={editSelectedCells}
-              disabled={selectedCells.length === 0}
-            >
-              Editar selecionados
-            </Button>
-          </>
-        )}
       </div>
       
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 sticky top-[52px] z-10"> 
             <tr>
-              <th scope="col" className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+              <th scope="col" className="sticky left-0 z-30 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] shadow-sm">
                 Horário
               </th>
               {professionals.map(professional => (
-                <th key={professional.id} scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                <th key={professional.id} scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] shadow-sm">
                   <div className="flex items-center">
                     <div className="h-8 w-8 flex-shrink-0 rounded-full bg-primary-100 flex items-center justify-center mr-2">
                       <span className="text-primary-700 font-medium">{professional.iniciais}</span>
