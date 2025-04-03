@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getActivityColor } from "@/utils/activityColors";
 import { type ActivityType, weekdays } from "@shared/schema";
@@ -15,6 +15,14 @@ interface ActivityCount {
   code: string;
   count: number;
   color: string;
+}
+
+interface DayStats {
+  dia: string;
+  total: number;
+  aula: number;
+  reuniao: number;
+  plantao: number;
 }
 
 export function ScheduleStats() {
@@ -139,31 +147,8 @@ export function ScheduleStats() {
     sexta
   ]);
   
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Estatísticas da Semana</h3>
-          <div className="animate-pulse flex space-y-3 flex-col">
-            <div className="h-8 bg-gray-200 rounded w-full"></div>
-            <div className="h-8 bg-gray-200 rounded w-full"></div>
-          </div>
-        </div>
-        <div className="bg-white shadow rounded-lg p-4 col-span-1 md:col-span-2">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Distribuição de Atividades</h3>
-          <div className="animate-pulse h-48 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Criar pares de estatísticas para mostrar no grid
-  const topStats = activityStats
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
-  
   // Preparar dados para estatísticas por dia da semana
-  const dayStats = useMemo(() => {
+  const dayStats = useMemo<DayStats[]>(() => {
     if (isLoading || !activityTypes) return [];
     
     const weekdayMap: {[key: string]: string} = {
@@ -176,13 +161,7 @@ export function ScheduleStats() {
       "domingo": "Domingo"
     };
     
-    const weekdayData: {
-      dia: string;
-      total: number;
-      aula: number;
-      reuniao: number;
-      plantao: number;
-    }[] = [];
+    const weekdayData: DayStats[] = [];
     
     // Função para contar atividades por tipo em um dia específico
     const countDayActivities = (dayData: any, dayName: string) => {
@@ -218,6 +197,29 @@ export function ScheduleStats() {
     
     return weekdayData;
   }, [segunda, terca, quarta, quinta, sexta, isLoading, activityTypes]);
+  
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white shadow rounded-lg p-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Estatísticas da Semana</h3>
+          <div className="animate-pulse flex space-y-3 flex-col">
+            <div className="h-8 bg-gray-200 rounded w-full"></div>
+            <div className="h-8 bg-gray-200 rounded w-full"></div>
+          </div>
+        </div>
+        <div className="bg-white shadow rounded-lg p-4 col-span-1 md:col-span-2">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Distribuição de Atividades</h3>
+          <div className="animate-pulse h-48 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Criar pares de estatísticas para mostrar no grid
+  const topStats = activityStats
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
 
   return (
     <div className="space-y-6">
