@@ -83,12 +83,31 @@ const timeSlotSchema = z.object({
 type ActivityTypeFormValues = z.infer<typeof activityTypeSchema>;
 type TimeSlotFormValues = z.infer<typeof timeSlotSchema>;
 
+// Interface para professores
+interface Professional {
+  id: number;
+  name: string;
+  initials: string;
+  active: number;
+}
+
+// Schema para formulário de professores
+const professionalSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  initials: z.string().min(1, "Iniciais são obrigatórias").max(3, "Máximo de 3 caracteres"),
+  active: z.number().default(1)
+});
+
+type ProfessionalFormValues = z.infer<typeof professionalSchema>;
+
 export default function Settings() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("activities");
   const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [timeSlotModalOpen, setTimeSlotModalOpen] = useState(false);
+  const [professionalModalOpen, setProfessionalModalOpen] = useState(false);
+  const [editingProfessionalId, setEditingProfessionalId] = useState<number | null>(null);
   
   // Query para buscar tipos de atividades
   const { 
@@ -127,6 +146,26 @@ export default function Settings() {
       startTime: "",
       endTime: ""
     }
+  });
+  
+  // Formulário para professores
+  const professionalForm = useForm<ProfessionalFormValues>({
+    resolver: zodResolver(professionalSchema),
+    defaultValues: {
+      name: "",
+      initials: "",
+      active: 1
+    }
+  });
+  
+  // Query para buscar professores
+  const { 
+    data: professionals, 
+    isLoading: isLoadingProfessionals,
+    isError: isProfessionalsError
+  } = useQuery<Professional[]>({
+    queryKey: ['/api/professionals'],
+    queryFn: ({ queryKey }) => fetch(queryKey[0] as string).then(res => res.json()),
   });
   
   // Mutação para criar/atualizar tipo de atividade
@@ -426,6 +465,176 @@ export default function Settings() {
     );
   };
   
+  // Função para renderizar a tabela de professores
+  const renderProfessionalsTable = () => {
+    if (isLoadingProfessionals) {
+      return (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <span className="ml-3">Carregando professores...</span>
+        </div>
+      );
+    }
+    
+    if (isProfessionalsError) {
+      return (
+        <div className="text-center p-6 text-red-500">
+          Erro ao carregar professores. Tente novamente mais tarde.
+        </div>
+      );
+    }
+    
+    if (!professionals || professionals.length === 0) {
+      return (
+        <div className="text-center p-6 text-gray-500">
+          Não há professores cadastrados. Clique no botão adicionar para criar o primeiro.
+        </div>
+      );
+    }
+    
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Iniciais</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {professionals.map((professional) => (
+            <TableRow key={professional.id}>
+              <TableCell>{professional.name}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{professional.initials}</Badge>
+              </TableCell>
+              <TableCell>
+                {professional.active === 1 ? (
+                  <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">Inativo</Badge>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button 
+                  onClick={() => handleEditProfessional(professional)} 
+                  variant="ghost" 
+                  size="sm"
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+                <Button 
+                  onClick={() => deleteProfessional(professional.id)} 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X className="h-4 w-4 mr-1" /> Excluir
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
+  
+  // Mutação para criar/atualizar professor
+  const { 
+    mutate: saveProfessional, 
+    isPending: isSavingProfessional 
+  } = useMutation({
+    mutationFn: async (data: ProfessionalFormValues & { id?: number }) => {
+      if (data.id) {
+        return apiRequest("PUT", `/api/professionals/${data.id}`, data);
+      } else {
+        return apiRequest("POST", "/api/professionals", data);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: editingProfessionalId 
+          ? "Professor atualizado com sucesso." 
+          : "Professor criado com sucesso.",
+        variant: "default",
+      });
+      
+      // Fechar modal e resetar form
+      setProfessionalModalOpen(false);
+      professionalForm.reset();
+      setEditingProfessionalId(null);
+      
+      // Recarregar dados
+      queryClient.invalidateQueries({ queryKey: ['/api/professionals'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao salvar: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Mutação para excluir professor
+  const { 
+    mutate: deleteProfessional 
+  } = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/professionals/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Professor excluído com sucesso.",
+        variant: "default",
+      });
+      
+      // Recarregar dados
+      queryClient.invalidateQueries({ queryKey: ['/api/professionals'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao excluir: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Função para abrir o modal de edição de professor
+  const handleEditProfessional = (professional: Professional) => {
+    setEditingProfessionalId(professional.id);
+    professionalForm.reset({
+      name: professional.name,
+      initials: professional.initials,
+      active: professional.active
+    });
+    setProfessionalModalOpen(true);
+  };
+  
+  // Função para abrir o modal de novo professor
+  const handleNewProfessional = () => {
+    setEditingProfessionalId(null);
+    professionalForm.reset({
+      name: "",
+      initials: "",
+      active: 1
+    });
+    setProfessionalModalOpen(true);
+  };
+  
+  // Função para salvar o professor
+  const onSubmitProfessional = (data: ProfessionalFormValues) => {
+    if (editingProfessionalId) {
+      saveProfessional({ ...data, id: editingProfessionalId });
+    } else {
+      saveProfessional(data);
+    }
+  };
+  
   // Função para calcular a duração entre dois horários
   const calculateDuration = (startTime: string, endTime: string) => {
     try {
@@ -461,6 +670,7 @@ export default function Settings() {
           <TabsList className="mb-4">
             <TabsTrigger value="activities">Tipos de Atividades</TabsTrigger>
             <TabsTrigger value="timeSlots">Horários</TabsTrigger>
+            <TabsTrigger value="professionals">Professores</TabsTrigger>
           </TabsList>
           
           <TabsContent value="activities">
@@ -501,6 +711,27 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 {renderTimeSlotsTable()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="professionals">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Gerenciar Professores</CardTitle>
+                    <CardDescription>
+                      Cadastre os professores que farão parte da escala de horários.
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => setProfessionalModalOpen(true)}>
+                    <PlusCircle className="h-4 w-4 mr-2" /> Adicionar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {renderProfessionalsTable()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -586,6 +817,99 @@ export default function Settings() {
                   </Button>
                   <Button type="submit">
                     {isSavingActivityType ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Modal para adicionar/editar professor */}
+        <Dialog open={professionalModalOpen} onOpenChange={setProfessionalModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingProfessionalId ? "Editar Professor" : "Novo Professor"}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <Form {...professionalForm}>
+              <form onSubmit={professionalForm.handleSubmit(onSubmitProfessional)} className="space-y-6">
+                <FormField
+                  control={professionalForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: João da Silva" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Nome completo do professor.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={professionalForm.control}
+                  name="initials"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Iniciais</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: JS" maxLength={3} {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Iniciais usadas para identificar o professor na grade (máx. 3 caracteres).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={professionalForm.control}
+                  name="active"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <div className="flex items-center space-x-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            className="form-checkbox h-5 w-5 text-primary rounded border-gray-300"
+                            checked={field.value === 1}
+                            onChange={(e) => professionalForm.setValue("active", e.target.checked ? 1 : 0)}
+                          />
+                        </FormControl>
+                        <span>Professor ativo</span>
+                      </div>
+                      <FormDescription>
+                        Desmarque para professores temporariamente inativos.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setProfessionalModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">
+                    {isSavingProfessional ? (
                       <>
                         <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent" />
                         Salvando...
