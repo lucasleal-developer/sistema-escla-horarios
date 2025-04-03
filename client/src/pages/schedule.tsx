@@ -55,6 +55,13 @@ export default function Schedule() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>(undefined);
   
+  // Debug para verificar o que está sendo selecionado
+  useEffect(() => {
+    if (selectedActivity) {
+      console.log("Atividade selecionada para edição:", selectedActivity);
+    }
+  }, [selectedActivity]);
+  
   // Buscar horários disponíveis
   const timeSlots: TimeSlot[] = [
     { startTime: "08:00", endTime: "09:00" },
@@ -76,14 +83,21 @@ export default function Schedule() {
   // Mutação para salvar/atualizar atividade
   const { mutate: saveSchedule, isPending: isSaving } = useMutation({
     mutationFn: async (formData: ScheduleFormValues) => {
+      console.log("Mutação sendo executada com dados:", formData);
+      console.log("Estado atual: isNewActivity =", isNewActivity, "selectedActivity =", selectedActivity);
+      
       // Se já existe uma atividade, atualiza, senão cria uma nova
       if (selectedActivity?.id && !isNewActivity) {
+        console.log("Atualizando atividade existente ID:", selectedActivity.id);
         return apiRequest("PUT", `/api/schedules/${selectedActivity.id}`, formData);
       } else {
+        console.log("Criando nova atividade");
         return apiRequest("POST", "/api/schedules", formData);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Sucesso na requisição:", data);
+      
       toast({
         title: isNewActivity ? "Atividade criada" : "Atividade atualizada",
         description: "A escala foi atualizada com sucesso.",
@@ -93,10 +107,17 @@ export default function Schedule() {
       // Atualiza a lista de escalas
       queryClient.invalidateQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
       
+      // Força recarregar os dados
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
+      }, 500);
+      
       // Fecha o modal
       closeModal();
     },
     onError: (error) => {
+      console.error("Erro na requisição:", error);
+      
       toast({
         title: "Erro",
         description: `Falha ao salvar: ${error.message}`,

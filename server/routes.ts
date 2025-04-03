@@ -100,19 +100,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/schedules/:weekday", async (req: Request, res: Response) => {
     try {
       const weekday = req.params.weekday as WeekDay;
+      console.log(`GET /schedules/${weekday} - Buscando horários`);
       
       // Verifica se o dia da semana é válido
       if (!weekdays.includes(weekday as any)) {
         return res.status(400).json({ message: "Dia da semana inválido" });
       }
       
+      // Busca todas as escalas do dia e profissionais
       const schedules = await storage.getSchedulesByDay(weekday);
+      console.log("Escalas encontradas:", schedules.length);
+      
       const professionals = await storage.getAllProfessionals();
       
+      // Formata os dados para retornar
       const formattedData = {
         dia: weekday,
         profissionais: professionals.map(p => {
+          // Filtra as escalas desse profissional
           const profSchedules = schedules.filter(s => s.professionalId === p.id);
+          
           return {
             id: p.id,
             nome: p.name,
@@ -152,10 +159,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post("/schedules", async (req: Request, res: Response) => {
     try {
+      console.log("POST /schedules - Criando nova atividade com dados:", req.body);
       const data = insertScheduleSchema.parse(req.body);
+      
+      // Verificar se já existe uma escala com os mesmos dados
+      // Garantir que o dia da semana é um valor válido antes de verificar duplicatas
+      const weekday = data.weekday;
+      if (!weekdays.includes(weekday as any)) {
+        return res.status(400).json({ message: "Dia da semana inválido" });
+      }
+      
+      const existingSchedules = await storage.getSchedulesByDay(weekday as WeekDay);
+      const duplicateSchedule = existingSchedules.find(s => 
+        s.professionalId === data.professionalId && 
+        s.startTime === data.startTime && 
+        s.endTime === data.endTime
+      );
+      
+      if (duplicateSchedule) {
+        console.log("Encontrada escala existente com os mesmos dados:", duplicateSchedule);
+        console.log("Atualizando escala existente em vez de criar nova");
+        const updatedSchedule = await storage.updateSchedule(duplicateSchedule.id, data);
+        return res.status(200).json(updatedSchedule);
+      }
+      
+      // Criar nova escala
       const schedule = await storage.createSchedule(data);
+      console.log("Nova escala criada:", schedule);
       res.status(201).json(schedule);
     } catch (error) {
+      console.error("Erro ao criar escala:", error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Dados inválidos", errors: error.errors });
       } else {
@@ -167,15 +200,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/schedules/:id", async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
-      const data = insertScheduleSchema.partial().parse(req.body);
-      const schedule = await storage.updateSchedule(id, data);
+      console.log("PUT /schedules/:id - Recebendo requisição para atualizar ID:", id, "Dados:", req.body);
       
-      if (!schedule) {
+      const data = insertScheduleSchema.partial().parse(req.body);
+      
+      // Verifica se existe uma atividade existente para esse ID
+      const existingSchedule = await storage.getSchedule(id);
+      if (!existingSchedule) {
+        console.log(`Escala ID:${id} não encontrada`);
         return res.status(404).json({ message: "Escala não encontrada" });
       }
       
+      console.log("Escala existente encontrada:", existingSchedule);
+      const schedule = await storage.updateSchedule(id, data);
+      console.log("Escala atualizada:", schedule);
+      
       res.json(schedule);
     } catch (error) {
+      console.error("Erro ao atualizar escala:", error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Dados inválidos", errors: error.errors });
       } else {
