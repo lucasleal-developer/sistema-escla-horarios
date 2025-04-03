@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
@@ -79,7 +80,7 @@ export function EditScheduleModal({
   });
   
   // Atualiza o formulário quando os props mudam
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       reset({
         professionalId: professional?.id || 0,
