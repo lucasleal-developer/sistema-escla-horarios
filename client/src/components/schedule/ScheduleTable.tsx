@@ -244,17 +244,17 @@ export function ScheduleTable({
                           ${isSelectionMode && isCellSelected(professional, timeSlot) ? 'ring-2 ring-offset-1 ring-primary' : ''}
                         `}
                         style={useCustomDot ? {
-                          backgroundColor: `${customColor}25`, // 25% de opacidade
+                          backgroundColor: `${customColor}15`, // 15% de opacidade
                           transition: 'background-color 0.15s ease-in-out',
                         } : {}}
                         onMouseOver={(e) => {
                           if (useCustomDot) {
-                            e.currentTarget.style.backgroundColor = `${customColor}40`; // 40% de opacidade para hover
+                            e.currentTarget.style.backgroundColor = `${customColor}25`; // 25% de opacidade para hover
                           }
                         }}
                         onMouseOut={(e) => {
                           if (useCustomDot) {
-                            e.currentTarget.style.backgroundColor = `${customColor}25`; // 25% de opacidade para normal
+                            e.currentTarget.style.backgroundColor = `${customColor}15`; // 15% de opacidade para normal
                           }
                         }}
                         onClick={() => handleCellClick(professional, timeSlot, activity)}

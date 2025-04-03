@@ -163,6 +163,19 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
     // Determinar se a cor é clara ou escura
     const isLight = isLightColor(rgb.r, rgb.g, rgb.b);
     
+    // Verificar especificamente para tons específicos que possam causar confusão
+    // Tons de verde-limão e amarelo-esverdeado
+    if ((rgb.g > 220 && rgb.r > 150 && rgb.b < 100) || 
+        (rgb.g > 200 && rgb.r > 150 && rgb.g > rgb.r)) {
+      console.log('Detectado tom verde-limão ou amarelo-esverdeado', rgb);
+      return {
+        bg: "bg-lime-100",
+        hover: "hover:bg-lime-200",
+        text: "text-lime-800",
+        dot: "bg-lime-500"
+      };
+    }
+    
     // Usar uma aproximação com classes Tailwind existentes
     // Com base na cor predominante
     if (rgb.r > Math.max(rgb.g, rgb.b) * 1.5) {
@@ -173,7 +186,7 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
         text: "text-red-800",
         dot: "bg-red-500"
       };
-    } else if (rgb.g > Math.max(rgb.r, rgb.b) * 1.5) {
+    } else if (rgb.g > Math.max(rgb.r, rgb.b) * 1.1) { // Reduzido o limiar para verde
       // Verde predominante
       return {
         bg: "bg-green-100",
