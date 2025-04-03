@@ -7,18 +7,11 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { Search, Filter, X, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { type Professional } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
+import { type Professional } from "@shared/schema";
 
 // Interface adaptada para Professional com campos em português
 interface ProfessionalDisplay {
@@ -131,7 +124,13 @@ export function ScheduleActions({
   
   // Remover profissional da seleção
   const removeProfessional = (id: number) => {
-    setSelectedProfessionals(selectedProfessionals.filter(p => p.id !== id));
+    const newSelection = selectedProfessionals.filter(p => p.id !== id);
+    setSelectedProfessionals(newSelection);
+    
+    // Se removeu o último professor (array vazio), resetamos o filtro para mostrar todos
+    if (newSelection.length === 0) {
+      onSearch([]);
+    }
   };
   
   // Fechar menu de sugestões quando clicar fora
@@ -250,48 +249,57 @@ export function ScheduleActions({
           )}
         </div>
         
-        {/* Menu de filtros */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {/* Menu de filtros - Implementando como Popover em vez de DropdownMenu para evitar fechamento automático */}
+        <Popover>
+          <PopoverTrigger asChild>
             <Button variant="outline" className="inline-flex items-center">
               <Filter className="h-4 w-4 mr-2" />
               Filtrar
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Opções de Filtro</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-0">
+            <div className="p-2 font-medium text-sm">Opções de Filtro</div>
+            <div className="px-2 pb-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="show-empty-slots"
+                  checked={filterOptions.showEmptySlots}
+                  onCheckedChange={(checked) => 
+                    setFilterOptions(prev => ({ ...prev, showEmptySlots: !!checked }))
+                  }
+                />
+                <label htmlFor="show-empty-slots" className="text-sm">
+                  Mostrar horários vazios
+                </label>
+              </div>
+            </div>
             
-            <DropdownMenuCheckboxItem
-              checked={filterOptions.showEmptySlots}
-              onCheckedChange={(checked) => 
-                setFilterOptions(prev => ({ ...prev, showEmptySlots: !!checked }))
-              }
-            >
-              Mostrar horários vazios
-            </DropdownMenuCheckboxItem>
+            <Separator />
+            <div className="p-2 font-medium text-sm">Tipos de Atividades</div>
             
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Tipos de Atividades</DropdownMenuLabel>
+            <div className="px-2 pb-2 space-y-2 max-h-60 overflow-auto">
+              {Array.isArray(activityTypes) && activityTypes.map((type: any) => (
+                <div key={type.id} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`activity-type-${type.id}`}
+                    checked={filterOptions.activityTypes.includes(type.code)}
+                    onCheckedChange={() => toggleActivityTypeFilter(type.code)}
+                  />
+                  <label htmlFor={`activity-type-${type.id}`} className="text-sm">
+                    {type.name}
+                  </label>
+                </div>
+              ))}
+            </div>
             
-            {Array.isArray(activityTypes) && activityTypes.map((type: any) => (
-              <DropdownMenuCheckboxItem
-                key={type.id}
-                checked={filterOptions.activityTypes.includes(type.code)}
-                onCheckedChange={() => toggleActivityTypeFilter(type.code)}
-              >
-                {type.name}
-              </DropdownMenuCheckboxItem>
-            ))}
-            
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1.5">
+            <Separator />
+            <div className="p-2">
               <Button size="sm" className="w-full" onClick={applyFilters}>
                 Aplicar Filtros
               </Button>
             </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
