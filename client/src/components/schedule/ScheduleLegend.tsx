@@ -1,17 +1,32 @@
-import { activityTypes } from "@shared/schema";
-import { getActivityColor, getActivityName } from "@/utils/activityColors";
+import { useQuery } from "@tanstack/react-query";
+import { getActivityColor } from "@/utils/activityColors";
+import { type ActivityType } from "@shared/schema";
 
 export function ScheduleLegend() {
+  // Buscar os tipos de atividades do sistema
+  const { data: activityTypesData, isLoading } = useQuery<ActivityType[]>({
+    queryKey: ['/api/activity-types'],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Legenda</h3>
+        <div className="animate-pulse h-6 bg-gray-200 rounded w-full max-w-md"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow rounded-lg p-4 mb-6">
       <h3 className="text-sm font-medium text-gray-700 mb-3">Legenda</h3>
       <div className="flex flex-wrap gap-4">
-        {activityTypes.map(activityCode => {
-          const colorClasses = getActivityColor(activityCode);
+        {activityTypesData && activityTypesData.map(activityType => {
+          const colorClasses = getActivityColor(activityType);
           return (
-            <div key={activityCode} className="flex items-center">
+            <div key={activityType.id} className="flex items-center">
               <div className={`h-3 w-3 rounded-full ${colorClasses.dot} mr-2`}></div>
-              <span className="text-xs text-gray-700">{getActivityName(activityCode)}</span>
+              <span className="text-xs text-gray-700">{activityType.name}</span>
             </div>
           );
         })}

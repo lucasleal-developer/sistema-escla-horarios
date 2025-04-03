@@ -217,13 +217,7 @@ export default function Schedule() {
     // Como é apenas um filtro de UI, podemos implementar posteriormente
   };
   
-  // Dados para estatísticas (estáticos para demonstração)
-  const mockStats = {
-    totalConsultas: 87,
-    cirurgias: 12,
-    horasPlantao: 54,
-    reunioes: 8
-  };
+  // Estatísticas agora são calculadas dinamicamente no componente ScheduleStats
   
   // Formatando a data da última atualização
   const lastUpdate = "Hoje, " + format(new Date(), "HH:mm");
@@ -261,8 +255,8 @@ export default function Schedule() {
         {/* Legenda */}
         <ScheduleLegend />
         
-        {/* Estatísticas */}
-        <ScheduleStats stats={mockStats} />
+        {/* Estatísticas baseadas em dados reais */}
+        <ScheduleStats />
         
         {/* Modal de edição */}
         {modalOpen && selectedProfessional && selectedTimeSlot && (
