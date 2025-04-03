@@ -44,16 +44,15 @@ export function ScheduleTable({
   // Buscar os tipos de atividades para obter as cores
   // O staleTime: 0 garante que os dados serão atualizados sempre que o componente for montado
   const { data: activityTypesData } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activity-types"],
-    staleTime: 0,
-    refetchOnMount: true,
-    // Ao receber os dados, salvar no localStorage para uso em outras partes da aplicação
-    onSuccess: (data: ActivityType[]) => {
-      if (data) {
-        localStorage.setItem('activityTypes', JSON.stringify(data));
-      }
-    }
+    queryKey: ["/api/activity-types"]
   });
+  
+  // Em vez disso, usamos o hook useEffect para salvar os dados quando eles chegarem
+  useEffect(() => {
+    if (activityTypesData) {
+      localStorage.setItem('activityTypes', JSON.stringify(activityTypesData));
+    }
+  }, [activityTypesData]);
   
   // Função para encontrar a atividade de um profissional em um determinado horário
   const findActivity = (professional: ScheduleProfessional, startTime: string) => {
@@ -235,35 +234,37 @@ export function ScheduleTable({
                   
                   // Verificar se a atividade tem uma cor personalizada
                   const customColor = activityTypeObj?.color || "";
-                  const useCustomDot = colors.dot === "bg-custom-color";
+                  // Obter a cor no formato hexadecimal para todos os tipos de atividade
+                  let actualColor = customColor;
+                  const useCustomStyle = colors.bg === "bg-custom-color";
                   
                   return (
                     <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">
                       <div 
-                        className={`${!useCustomDot ? `${colors.bg} ${colors.hoverBg}` : ''} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative
+                        className={`${!useCustomStyle ? `${colors.bg} ${colors.hoverBg}` : ''} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative
                           ${isSelectionMode && isCellSelected(professional, timeSlot) ? 'ring-2 ring-offset-1 ring-primary' : ''}
                         `}
-                        style={useCustomDot ? {
-                          backgroundColor: `${customColor}15`, // 15% de opacidade
+                        style={useCustomStyle ? {
+                          backgroundColor: `${actualColor}15`, // 15% de opacidade
                           transition: 'background-color 0.15s ease-in-out',
                         } : {}}
                         onMouseOver={(e) => {
-                          if (useCustomDot) {
-                            e.currentTarget.style.backgroundColor = `${customColor}25`; // 25% de opacidade para hover
+                          if (useCustomStyle) {
+                            e.currentTarget.style.backgroundColor = `${actualColor}25`; // 25% de opacidade para hover
                           }
                         }}
                         onMouseOut={(e) => {
-                          if (useCustomDot) {
-                            e.currentTarget.style.backgroundColor = `${customColor}15`; // 15% de opacidade para normal
+                          if (useCustomStyle) {
+                            e.currentTarget.style.backgroundColor = `${actualColor}15`; // 15% de opacidade para normal
                           }
                         }}
                         onClick={() => handleCellClick(professional, timeSlot, activity)}
                       >
                         <div className="flex items-center mb-1">
-                          {useCustomDot ? (
+                          {useCustomStyle ? (
                             <div 
                               className="h-3 w-3 rounded-full mr-2" 
-                              style={{ backgroundColor: customColor }}
+                              style={{ backgroundColor: actualColor }}
                             ></div>
                           ) : (
                             <div className={`h-3 w-3 rounded-full ${colors.dot} mr-2`}></div>

@@ -75,86 +75,14 @@ function getTextColor(hex: string): string {
 
 // Conversão de código de cor para classes Tailwind
 export function getColorClasses(colorHex: string): { bg: string, hover: string, text: string, dot: string } {
-  // Verificar se a cor está no mapa pré-definido
+  // Verificar se a cor está no mapa pré-definido (para compatibilidade)
   if (colorMap[colorHex]) {
     return colorMap[colorHex];
   }
   
   // Verificar se é uma cor hexadecimal válida
   if (isValidHexColor(colorHex)) {
-    // Para cores específicas, usar o mapeamento predefinido já existente
-    if (colorHex === '#ffff00') { // Amarelo puro
-      return { 
-        bg: "bg-yellow-100", 
-        hover: "hover:bg-yellow-200", 
-        text: "text-yellow-800", 
-        dot: "bg-yellow-500" 
-      };
-    }
-    
-    if (colorHex === '#00ff00') { // Verde puro
-      return { 
-        bg: "bg-green-100", 
-        hover: "hover:bg-green-200", 
-        text: "text-green-800", 
-        dot: "bg-green-500" 
-      };
-    }
-
-    if (colorHex === '#0000ff') { // Azul puro
-      return { 
-        bg: "bg-blue-100", 
-        hover: "hover:bg-blue-200", 
-        text: "text-blue-800", 
-        dot: "bg-blue-500" 
-      };
-    }
-    
-    // Para outras cores, tentar encontrar a cor mais próxima na paleta
-    // Verificar algumas cores comuns que podem estar em formatos diferentes
-    const lowerHex = colorHex.toLowerCase();
-    
-    // Vermelho
-    if (lowerHex.includes('ff0000') || lowerHex.includes('f00')) {
-      return { 
-        bg: "bg-red-100", 
-        hover: "hover:bg-red-200", 
-        text: "text-red-800", 
-        dot: "bg-red-500" 
-      };
-    }
-    
-    // Verde
-    if (lowerHex.includes('00ff00') || lowerHex.includes('0f0')) {
-      return { 
-        bg: "bg-green-100", 
-        hover: "hover:bg-green-200", 
-        text: "text-green-800", 
-        dot: "bg-green-500" 
-      };
-    }
-    
-    // Azul
-    if (lowerHex.includes('0000ff') || lowerHex.includes('00f')) {
-      return { 
-        bg: "bg-blue-100", 
-        hover: "hover:bg-blue-200", 
-        text: "text-blue-800", 
-        dot: "bg-blue-500" 
-      };
-    }
-    
-    // Amarelo
-    if (lowerHex.includes('ffff00') || lowerHex.includes('ff0')) {
-      return { 
-        bg: "bg-yellow-100", 
-        hover: "hover:bg-yellow-200", 
-        text: "text-yellow-800", 
-        dot: "bg-yellow-500" 
-      };
-    }
-    
-    // Extrair os componentes RGB da cor como fallback
+    // Extrair os componentes RGB da cor
     const rgb = hexToRgb(colorHex);
     if (!rgb) {
       return { bg: "bg-gray-100", hover: "hover:bg-gray-200", text: "text-gray-800", dot: "bg-gray-400" };
@@ -163,79 +91,14 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
     // Determinar se a cor é clara ou escura
     const isLight = isLightColor(rgb.r, rgb.g, rgb.b);
     
-    // Verificar especificamente para tons específicos que possam causar confusão
-    // Tons de verde-limão e amarelo-esverdeado
-    if ((rgb.g > 220 && rgb.r > 150 && rgb.b < 100) || 
-        (rgb.g > 200 && rgb.r > 150 && rgb.g > rgb.r)) {
-      console.log('Detectado tom verde-limão ou amarelo-esverdeado', rgb);
-      return {
-        bg: "bg-lime-100",
-        hover: "hover:bg-lime-200",
-        text: "text-lime-800",
-        dot: "bg-lime-500"
-      };
-    }
-    
-    // Usar uma aproximação com classes Tailwind existentes
-    // Com base na cor predominante
-    if (rgb.r > Math.max(rgb.g, rgb.b) * 1.5) {
-      // Vermelho predominante
-      return {
-        bg: "bg-red-100",
-        hover: "hover:bg-red-200",
-        text: "text-red-800",
-        dot: "bg-red-500"
-      };
-    } else if (rgb.g > Math.max(rgb.r, rgb.b) * 1.1) { // Reduzido o limiar para verde
-      // Verde predominante
-      return {
-        bg: "bg-green-100",
-        hover: "hover:bg-green-200",
-        text: "text-green-800",
-        dot: "bg-green-500"
-      };
-    } else if (rgb.b > Math.max(rgb.r, rgb.g) * 1.5) {
-      // Azul predominante
-      return {
-        bg: "bg-blue-100",
-        hover: "hover:bg-blue-200",
-        text: "text-blue-800",
-        dot: "bg-blue-500"
-      };
-    } else if (rgb.r > 200 && rgb.g > 200 && rgb.b < 100) {
-      // Amarelo (vermelho + verde)
-      return {
-        bg: "bg-yellow-100",
-        hover: "hover:bg-yellow-200",
-        text: "text-yellow-800",
-        dot: "bg-yellow-500"
-      };
-    } else if (rgb.r > 200 && rgb.b > 150 && rgb.g < 100) {
-      // Roxo (vermelho + azul)
-      return {
-        bg: "bg-purple-100",
-        hover: "hover:bg-purple-200",
-        text: "text-purple-800",
-        dot: "bg-purple-500"
-      };
-    } else if (rgb.g > 150 && rgb.b > 150 && rgb.r < 100) {
-      // Ciano (verde + azul)
-      return {
-        bg: "bg-cyan-100",
-        hover: "hover:bg-cyan-200",
-        text: "text-cyan-800",
-        dot: "bg-cyan-500"
-      };
-    } else {
-      // Usar o próprio style para o indicador de cor
-      // Aplicando a cor diretamente com o atributo style no componente em vez de classe
-      return {
-        bg: isLight ? "bg-gray-100" : "bg-gray-700",
-        hover: isLight ? "hover:bg-gray-200" : "hover:bg-gray-600",
-        text: isLight ? "text-gray-800" : "text-white",
-        dot: "bg-custom-color" // Esta classe será substituída por inline style
-      };
-    }
+    // Em vez de tentar adivinhar a classe de cor do Tailwind,
+    // vamos sempre usar a cor personalizada diretamente com CSS inline
+    return {
+      bg: "bg-custom-color",        // Será substituído por inline style
+      hover: "hover-custom-color",  // Será substituído por eventos JS
+      text: isLight ? "text-gray-800" : "text-white",
+      dot: "bg-custom-color"        // Será substituído por inline style
+    };
   }
   
   // Fallback para cinza se a cor não for válida

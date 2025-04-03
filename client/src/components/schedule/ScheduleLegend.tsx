@@ -1,21 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { getActivityColor } from "@/utils/activityColors";
 import { type ActivityType } from "@shared/schema";
+import { useEffect } from "react";
 
 export function ScheduleLegend() {
   // Buscar os tipos de atividades do sistema
   // O staleTime: 0 garante que os dados serão atualizados sempre que o componente for montado
   const { data: activityTypesData, isLoading } = useQuery<ActivityType[]>({
-    queryKey: ['/api/activity-types'],
-    staleTime: 0,
-    refetchOnMount: true,
-    // Ao receber os dados, salvar no localStorage para uso em outras partes da aplicação
-    onSuccess: (data: ActivityType[]) => {
-      if (data) {
-        localStorage.setItem('activityTypes', JSON.stringify(data));
-      }
-    }
+    queryKey: ['/api/activity-types']
   });
+  
+  // Efeito para salvar os dados no localStorage quando estiverem disponíveis
+  useEffect(() => {
+    if (activityTypesData) {
+      localStorage.setItem('activityTypes', JSON.stringify(activityTypesData));
+    }
+  }, [activityTypesData]);
 
   if (isLoading) {
     return (
