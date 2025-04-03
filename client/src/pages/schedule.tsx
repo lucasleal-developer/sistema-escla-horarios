@@ -28,7 +28,7 @@ interface Activity {
   id: number;
   hora: string;
   horaFim: string;
-  atividade: ActivityType;
+  atividade: string; // Agora é string (código da atividade)
   local: string;
   observacoes: string;
 }

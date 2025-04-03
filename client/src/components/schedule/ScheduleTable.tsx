@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { type ActivityType } from "@shared/schema";
-import { getActivityColor, activityNames } from "@/utils/activityColors";
+import { getActivityColor, getActivityName } from "@/utils/activityColors";
 
 interface TimeSlot {
   startTime: string;
@@ -115,7 +115,7 @@ export function ScheduleTable({
                         <div className="flex items-center mb-1">
                           <div className={`h-3 w-3 rounded-full ${colors.dot} mr-2`}></div>
                           <span className={`text-xs font-medium ${colors.text}`}>
-                            {activityNames[activityType]}
+                            {getActivityName(activityType)}
                           </span>
                         </div>
                         {activity?.local && (

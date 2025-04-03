@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: s.id,
               hora: s.startTime,
               horaFim: s.endTime,
-              atividade: s.activity,
+              atividade: s.activityCode,
               local: s.location || "",
               observacoes: s.notes || ""
             }))

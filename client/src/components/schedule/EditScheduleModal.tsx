@@ -24,10 +24,10 @@ import {
   scheduleFormSchema, 
   type ScheduleFormValues, 
   type WeekDay, 
-  type ActivityType, 
-  activityTypes 
+  type ActivityType
 } from "@shared/schema";
-import { activityNames } from "@/utils/activityColors";
+import { getActivityName } from "@/utils/activityColors";
+import { useQuery } from "@tanstack/react-query";
 
 interface TimeSlot {
   startTime: string;
@@ -48,7 +48,7 @@ interface EditScheduleModalProps {
   timeSlot: TimeSlot | null;
   currentActivity?: {
     id?: number;
-    atividade: ActivityType;
+    atividade: string; // Agora usamos o código (string) em vez do objeto ActivityType
     local?: string;
     observacoes?: string;
   };
@@ -68,6 +68,12 @@ export function EditScheduleModal({
 }: EditScheduleModalProps) {
   const [selectedActivity, setSelectedActivity] = useState<string>(currentActivity?.atividade || "disponivel");
   
+  // Buscar tipos de atividade do servidor
+  const { data: activityTypes = [] } = useQuery({
+    queryKey: ['/api/activity-types'],
+    staleTime: 30000 // 30 segundos de cache
+  });
+  
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleFormSchema),
     defaultValues: {
@@ -75,7 +81,7 @@ export function EditScheduleModal({
       weekday: weekday,
       startTime: timeSlot?.startTime || "",
       endTime: timeSlot?.endTime || "",
-      activity: currentActivity?.atividade || "disponivel",
+      activityCode: currentActivity?.atividade || "disponivel",
       location: currentActivity?.local || "",
       notes: currentActivity?.observacoes || ""
     }
@@ -92,7 +98,7 @@ export function EditScheduleModal({
         weekday: weekday,
         startTime: timeSlot?.startTime || "",
         endTime: timeSlot?.endTime || "",
-        activity: activityValue,
+        activityCode: activityValue,
         location: currentActivity?.local || "",
         notes: currentActivity?.observacoes || ""
       });
@@ -101,7 +107,7 @@ export function EditScheduleModal({
   
   const handleActivityChange = (value: string) => {
     setSelectedActivity(value);
-    setValue("activity", value);
+    setValue("activityCode", value);
     console.log("Atividade selecionada:", value);
   };
   
@@ -109,7 +115,7 @@ export function EditScheduleModal({
     // Certifica-se que a atividade selecionada está no objeto de dados
     const submittedData = {
       ...data,
-      activity: selectedActivity
+      activityCode: selectedActivity
     };
     console.log("Dados enviados:", submittedData);
     onSave(submittedData);
@@ -176,7 +182,7 @@ export function EditScheduleModal({
           </div>
           
           <div className="mb-4">
-            <Label htmlFor="activity">Atividade</Label>
+            <Label htmlFor="activityCode">Atividade</Label>
             <Select 
               onValueChange={handleActivityChange}
               value={selectedActivity}
@@ -186,16 +192,20 @@ export function EditScheduleModal({
                 <SelectValue placeholder="Selecione uma atividade" />
               </SelectTrigger>
               <SelectContent>
-                {activityTypes.map(activity => (
-                  <SelectItem key={activity} value={activity}>
-                    {activityNames[activity as ActivityType]}
+                {/* Opção padrão para disponível */}
+                <SelectItem value="disponivel">Disponível</SelectItem>
+                
+                {/* Tipos de atividade do banco de dados */}
+                {Array.isArray(activityTypes) && activityTypes.map((activity: any) => (
+                  <SelectItem key={activity.id} value={activity.code}>
+                    {activity.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <input type="hidden" {...register("activity")} value={selectedActivity} />
-            {errors.activity && (
-              <p className="text-xs text-red-500 mt-1">{errors.activity.message}</p>
+            <input type="hidden" {...register("activityCode")} value={selectedActivity} />
+            {errors.activityCode && (
+              <p className="text-xs text-red-500 mt-1">{errors.activityCode.message}</p>
             )}
           </div>
           

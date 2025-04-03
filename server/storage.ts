@@ -3,16 +3,14 @@ import {
   professionals, type Professional, type InsertProfessional,
   timeSlots, type TimeSlot, type InsertTimeSlot,
   schedules, type Schedule, type InsertSchedule,
+  activityTypeTable, type ActivityType, type InsertActivityType,
+  defaultActivityTypes,
   type WeekDay
 } from "@shared/schema";
-
-// Interface para tipos de atividades
-interface ActivityType {
-  id: number;
-  name: string;
-  code: string;
-  color: string;
-}
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq, and } from "drizzle-orm";
+import pg from "pg";
+const { Pool } = pg;
 
 // Interface de armazenamento
 export interface IStorage {
@@ -31,12 +29,14 @@ export interface IStorage {
   // Tipos de Atividades
   getAllActivityTypes(): Promise<ActivityType[]>;
   getActivityType(id: number): Promise<ActivityType | undefined>;
-  createActivityType(activityType: { name: string; code: string; color: string }): Promise<ActivityType>;
-  updateActivityType(id: number, data: Partial<{ name: string; code: string; color: string }>): Promise<ActivityType | undefined>;
+  getActivityTypeByCode(code: string): Promise<ActivityType | undefined>;
+  createActivityType(activityType: InsertActivityType): Promise<ActivityType>;
+  updateActivityType(id: number, data: Partial<InsertActivityType>): Promise<ActivityType | undefined>;
   deleteActivityType(id: number): Promise<boolean>;
   
   // Horários
   getAllTimeSlots(): Promise<TimeSlot[]>;
+  getBaseTimeSlots(): Promise<TimeSlot[]>; // Retorna apenas os slots base (não os personalizados)
   getTimeSlot(id: number): Promise<TimeSlot | undefined>;
   createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot>;
   deleteTimeSlot(id: number): Promise<boolean>;
@@ -78,6 +78,20 @@ export class MemStorage implements IStorage {
     
     // Inicializa com dados de exemplo para facilitar o desenvolvimento
     this.initializeData();
+  }
+  
+  // Método adicional para a nova interface
+  async getActivityTypeByCode(code: string): Promise<ActivityType | undefined> {
+    return Array.from(this.activityTypes.values()).find(
+      (activityType) => activityType.code === code
+    );
+  }
+  
+  // Método adicional para a nova interface
+  async getBaseTimeSlots(): Promise<TimeSlot[]> {
+    return Array.from(this.timeSlots.values()).filter(
+      (timeSlot) => timeSlot.isBaseSlot === 1
+    );
   }
 
   // Usuários
@@ -270,40 +284,253 @@ export class MemStorage implements IStorage {
     
     // Adicionar escalas para Segunda-feira
     const segundaSchedules: InsertSchedule[] = [
-      { professionalId: 1, weekday: "segunda", startTime: "08:00", endTime: "09:30", activity: "aula", location: "Sala 101", notes: "Matemática" },
-      { professionalId: 2, weekday: "segunda", startTime: "08:00", endTime: "09:30", activity: "aula", location: "Sala 203", notes: "Português" },
-      { professionalId: 3, weekday: "segunda", startTime: "08:00", endTime: "09:30", activity: "disponivel", location: "", notes: "" },
-      { professionalId: 4, weekday: "segunda", startTime: "08:00", endTime: "09:30", activity: "estudo", location: "Biblioteca", notes: "Preparação de aulas" },
-      { professionalId: 5, weekday: "segunda", startTime: "08:00", endTime: "09:30", activity: "plantao", location: "Sala Professores", notes: "Plantão de dúvidas" },
+      { professionalId: 1, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "aula", location: "Sala 101", notes: "Matemática" },
+      { professionalId: 2, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "aula", location: "Sala 203", notes: "Português" },
+      { professionalId: 3, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "disponivel", location: "", notes: "" },
+      { professionalId: 4, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "estudo", location: "Biblioteca", notes: "Preparação de aulas" },
+      { professionalId: 5, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "plantao", location: "Sala Professores", notes: "Plantão de dúvidas" },
       
-      { professionalId: 1, weekday: "segunda", startTime: "09:45", endTime: "11:15", activity: "reuniao", location: "Sala Reuniões", notes: "Reunião pedagógica" },
-      { professionalId: 2, weekday: "segunda", startTime: "09:45", endTime: "11:15", activity: "aula", location: "Sala 203", notes: "Português" },
-      { professionalId: 3, weekday: "segunda", startTime: "09:45", endTime: "11:15", activity: "reuniao", location: "Sala Reuniões", notes: "Reunião pedagógica" },
-      { professionalId: 4, weekday: "segunda", startTime: "09:45", endTime: "11:15", activity: "aula", location: "Lab Química", notes: "Química" },
-      { professionalId: 5, weekday: "segunda", startTime: "09:45", endTime: "11:15", activity: "disponivel", location: "", notes: "" },
+      { professionalId: 1, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "reuniao", location: "Sala Reuniões", notes: "Reunião pedagógica" },
+      { professionalId: 2, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "aula", location: "Sala 203", notes: "Português" },
+      { professionalId: 3, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "reuniao", location: "Sala Reuniões", notes: "Reunião pedagógica" },
+      { professionalId: 4, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "aula", location: "Lab Química", notes: "Química" },
+      { professionalId: 5, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "disponivel", location: "", notes: "" },
       
-      { professionalId: 1, weekday: "segunda", startTime: "13:30", endTime: "15:00", activity: "aula", location: "Sala 101", notes: "Matemática" },
-      { professionalId: 2, weekday: "segunda", startTime: "13:30", endTime: "15:00", activity: "licenca", location: "", notes: "Licença médica" },
-      { professionalId: 3, weekday: "segunda", startTime: "13:30", endTime: "15:00", activity: "aula", location: "Sala 201", notes: "História" },
-      { professionalId: 4, weekday: "segunda", startTime: "13:30", endTime: "15:00", activity: "estudo", location: "Biblioteca", notes: "Preparação de provas" },
-      { professionalId: 5, weekday: "segunda", startTime: "13:30", endTime: "15:00", activity: "aula", location: "Sala 205", notes: "Inglês" }
+      { professionalId: 1, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "aula", location: "Sala 101", notes: "Matemática" },
+      { professionalId: 2, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "licenca", location: "", notes: "Licença médica" },
+      { professionalId: 3, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "aula", location: "Sala 201", notes: "História" },
+      { professionalId: 4, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "estudo", location: "Biblioteca", notes: "Preparação de provas" },
+      { professionalId: 5, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "aula", location: "Sala 205", notes: "Inglês" }
     ];
     
     segundaSchedules.forEach(s => this.createSchedule(s));
     
     // Adicionar algumas escalas para outros dias da semana
     const otherDaysSchedules: InsertSchedule[] = [
-      { professionalId: 1, weekday: "terca", startTime: "08:00", endTime: "09:30", activity: "aula", location: "Sala 102", notes: "Matemática" },
-      { professionalId: 2, weekday: "terca", startTime: "08:00", endTime: "09:30", activity: "reuniao", location: "Sala Coordenação", notes: "Reunião de departamento" },
-      { professionalId: 3, weekday: "terca", startTime: "08:00", endTime: "09:30", activity: "plantao", location: "Biblioteca", notes: "Plantão de dúvidas" },
+      { professionalId: 1, weekday: "terca", startTime: "08:00", endTime: "09:30", activityCode: "aula", location: "Sala 102", notes: "Matemática" },
+      { professionalId: 2, weekday: "terca", startTime: "08:00", endTime: "09:30", activityCode: "reuniao", location: "Sala Coordenação", notes: "Reunião de departamento" },
+      { professionalId: 3, weekday: "terca", startTime: "08:00", endTime: "09:30", activityCode: "plantao", location: "Biblioteca", notes: "Plantão de dúvidas" },
       
-      { professionalId: 1, weekday: "quarta", startTime: "13:30", endTime: "15:00", activity: "evento", location: "Auditório", notes: "Feira de ciências" },
-      { professionalId: 2, weekday: "quarta", startTime: "13:30", endTime: "15:00", activity: "plantao", location: "Sala 208", notes: "Plantão de dúvidas" },
-      { professionalId: 4, weekday: "quarta", startTime: "13:30", endTime: "15:00", activity: "evento", location: "Auditório", notes: "Feira de ciências" }
+      { professionalId: 1, weekday: "quarta", startTime: "13:30", endTime: "15:00", activityCode: "evento", location: "Auditório", notes: "Feira de ciências" },
+      { professionalId: 2, weekday: "quarta", startTime: "13:30", endTime: "15:00", activityCode: "plantao", location: "Sala 208", notes: "Plantão de dúvidas" },
+      { professionalId: 4, weekday: "quarta", startTime: "13:30", endTime: "15:00", activityCode: "evento", location: "Auditório", notes: "Feira de ciências" }
     ];
     
     otherDaysSchedules.forEach(s => this.createSchedule(s));
   }
 }
 
-export const storage = new MemStorage();
+// Implementação de armazenamento com PostgreSQL
+export class PostgresStorage implements IStorage {
+  private db: ReturnType<typeof drizzle>;
+  private client: any;
+  
+  constructor(connectionString: string) {
+    this.client = new Pool({ connectionString });
+    this.db = drizzle(this.client);
+  }
+
+  async connect() {
+    try {
+      // Pool já está conectado, não precisamos chamar connect()
+      console.log("Connected to PostgreSQL database");
+      await this.setupDatabase();
+    } catch (error) {
+      console.error("Failed to connect to PostgreSQL database:", error);
+      throw error;
+    }
+  }
+
+  async setupDatabase() {
+    try {
+      // Verifica se já existem tipos de atividades no banco
+      const existingActivityTypes = await this.getAllActivityTypes();
+      
+      // Se não houver tipos de atividades, inicializa com os padrões
+      if (existingActivityTypes.length === 0) {
+        console.log("Initializing default activity types");
+        for (const activityType of defaultActivityTypes) {
+          await this.createActivityType(activityType);
+        }
+      }
+
+      // Verifica se já existem slots de tempo no banco
+      const existingTimeSlots = await this.getAllTimeSlots();
+      
+      // Se não houver slots de tempo, inicializa com os padrões
+      if (existingTimeSlots.length === 0) {
+        console.log("Initializing default time slots");
+        const defaultTimeSlots: InsertTimeSlot[] = [
+          { startTime: "08:00", endTime: "08:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "08:30", endTime: "09:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "09:00", endTime: "09:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "09:30", endTime: "10:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "10:00", endTime: "10:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "10:30", endTime: "11:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "11:00", endTime: "11:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "11:30", endTime: "12:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "13:00", endTime: "13:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "13:30", endTime: "14:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "14:00", endTime: "14:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "14:30", endTime: "15:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "15:00", endTime: "15:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "15:30", endTime: "16:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "16:00", endTime: "16:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "16:30", endTime: "17:00", interval: 30, isBaseSlot: 1 },
+          { startTime: "17:00", endTime: "17:30", interval: 30, isBaseSlot: 1 },
+          { startTime: "17:30", endTime: "18:00", interval: 30, isBaseSlot: 1 },
+        ];
+        
+        for (const timeSlot of defaultTimeSlots) {
+          await this.createTimeSlot(timeSlot);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to setup database:", error);
+      throw error;
+    }
+  }
+
+  // Implementações dos métodos de IStorage
+  
+  // Usuários
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(user).returning();
+    return result[0];
+  }
+
+  // Profissionais
+  async getAllProfessionals(): Promise<Professional[]> {
+    return await this.db.select().from(professionals);
+  }
+
+  async getProfessional(id: number): Promise<Professional | undefined> {
+    const result = await this.db.select().from(professionals).where(eq(professionals.id, id));
+    return result[0];
+  }
+
+  async createProfessional(professional: InsertProfessional): Promise<Professional> {
+    const result = await this.db.insert(professionals).values(professional).returning();
+    return result[0];
+  }
+
+  async updateProfessional(id: number, data: Partial<InsertProfessional>): Promise<Professional | undefined> {
+    const result = await this.db.update(professionals).set(data).where(eq(professionals.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteProfessional(id: number): Promise<boolean> {
+    const result = await this.db.delete(professionals).where(eq(professionals.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Tipos de Atividades
+  async getAllActivityTypes(): Promise<ActivityType[]> {
+    return await this.db.select().from(activityTypeTable);
+  }
+
+  async getActivityType(id: number): Promise<ActivityType | undefined> {
+    const result = await this.db.select().from(activityTypeTable).where(eq(activityTypeTable.id, id));
+    return result[0];
+  }
+
+  async getActivityTypeByCode(code: string): Promise<ActivityType | undefined> {
+    const result = await this.db.select().from(activityTypeTable).where(eq(activityTypeTable.code, code));
+    return result[0];
+  }
+
+  async createActivityType(activityType: InsertActivityType): Promise<ActivityType> {
+    const result = await this.db.insert(activityTypeTable).values(activityType).returning();
+    return result[0];
+  }
+
+  async updateActivityType(id: number, data: Partial<InsertActivityType>): Promise<ActivityType | undefined> {
+    const result = await this.db.update(activityTypeTable).set(data).where(eq(activityTypeTable.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteActivityType(id: number): Promise<boolean> {
+    const result = await this.db.delete(activityTypeTable).where(eq(activityTypeTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Horários
+  async getAllTimeSlots(): Promise<TimeSlot[]> {
+    return await this.db.select().from(timeSlots);
+  }
+
+  async getBaseTimeSlots(): Promise<TimeSlot[]> {
+    return await this.db.select().from(timeSlots).where(eq(timeSlots.isBaseSlot, 1));
+  }
+
+  async getTimeSlot(id: number): Promise<TimeSlot | undefined> {
+    const result = await this.db.select().from(timeSlots).where(eq(timeSlots.id, id));
+    return result[0];
+  }
+
+  async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
+    const result = await this.db.insert(timeSlots).values(timeSlot).returning();
+    return result[0];
+  }
+
+  async deleteTimeSlot(id: number): Promise<boolean> {
+    const result = await this.db.delete(timeSlots).where(eq(timeSlots.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Escalas
+  async getSchedulesByDay(weekday: WeekDay): Promise<Schedule[]> {
+    return await this.db.select().from(schedules).where(eq(schedules.weekday, weekday));
+  }
+
+  async getSchedulesByProfessional(professionalId: number): Promise<Schedule[]> {
+    return await this.db.select().from(schedules).where(eq(schedules.professionalId, professionalId));
+  }
+
+  async getSchedule(id: number): Promise<Schedule | undefined> {
+    const result = await this.db.select().from(schedules).where(eq(schedules.id, id));
+    return result[0];
+  }
+
+  async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
+    const result = await this.db.insert(schedules).values(schedule).returning();
+    return result[0];
+  }
+
+  async updateSchedule(id: number, data: Partial<InsertSchedule>): Promise<Schedule | undefined> {
+    const result = await this.db.update(schedules).set(data).where(eq(schedules.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteSchedule(id: number): Promise<boolean> {
+    const result = await this.db.delete(schedules).where(eq(schedules.id, id)).returning();
+    return result.length > 0;
+  }
+}
+
+// Cria e exporta a instância de armazenamento
+let storage: IStorage;
+
+if (process.env.DATABASE_URL) {
+  console.log("Using PostgreSQL storage");
+  storage = new PostgresStorage(process.env.DATABASE_URL);
+  (storage as PostgresStorage).connect().catch(err => {
+    console.error("Failed to connect to PostgreSQL, falling back to in-memory storage:", err);
+    storage = new MemStorage();
+  });
+} else {
+  console.log("Using in-memory storage");
+  storage = new MemStorage();
+}
+
+export { storage };
