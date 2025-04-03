@@ -149,24 +149,28 @@ export function EditScheduleModal({
                 <Input
                   type="time"
                   id="startTime"
+                  step="60"
                   {...register("startTime")}
                   className="mt-1"
                 />
                 {errors.startTime && (
                   <p className="text-xs text-red-500 mt-1">{errors.startTime.message}</p>
                 )}
+                <p className="text-xs text-gray-500 mt-1">Ex: 14:15</p>
               </div>
               <div className="w-1/2">
                 <Label htmlFor="endTime" className="text-xs text-gray-500">Fim</Label>
                 <Input
                   type="time"
                   id="endTime"
+                  step="60"
                   {...register("endTime")}
                   className="mt-1"
                 />
                 {errors.endTime && (
                   <p className="text-xs text-red-500 mt-1">{errors.endTime.message}</p>
                 )}
+                <p className="text-xs text-gray-500 mt-1">Ex: 15:45</p>
               </div>
             </div>
           </div>

@@ -72,6 +72,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API para tipos de atividades
+  apiRouter.get("/activity-types", async (req: Request, res: Response) => {
+    try {
+      const activityTypes = await storage.getAllActivityTypes();
+      res.json(activityTypes);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar tipos de atividades" });
+    }
+  });
+  
+  apiRouter.post("/activity-types", async (req: Request, res: Response) => {
+    try {
+      const data = req.body;
+      const activityType = await storage.createActivityType(data);
+      res.status(201).json(activityType);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao criar tipo de atividade" });
+    }
+  });
+  
+  apiRouter.put("/activity-types/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const data = req.body;
+      const activityType = await storage.updateActivityType(id, data);
+      
+      if (!activityType) {
+        return res.status(404).json({ message: "Tipo de atividade não encontrado" });
+      }
+      
+      res.json(activityType);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar tipo de atividade" });
+    }
+  });
+  
+  apiRouter.delete("/activity-types/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const success = await storage.deleteActivityType(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Tipo de atividade não encontrado" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir tipo de atividade" });
+    }
+  });
+  
   // API para horários
   apiRouter.get("/time-slots", async (req: Request, res: Response) => {
     try {
@@ -93,6 +144,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Erro ao criar horário" });
       }
+    }
+  });
+  
+  apiRouter.delete("/time-slots/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const success = await storage.deleteTimeSlot(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Horário não encontrado" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir horário" });
     }
   });
   

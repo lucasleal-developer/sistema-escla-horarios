@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { type ActivityType } from "@shared/schema";
-import activityColors, { activityNames } from "@/utils/activityColors";
+import { getActivityColor, activityNames } from "@/utils/activityColors";
 
 interface TimeSlot {
   startTime: string;
@@ -104,7 +104,7 @@ export function ScheduleTable({
                 {professionals.map(professional => {
                   const activity = findActivity(professional, timeSlot.startTime);
                   const activityType = activity?.atividade as ActivityType || "disponivel";
-                  const colors = activityColors[activityType];
+                  const colors = getActivityColor(activityType);
                   
                   return (
                     <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">

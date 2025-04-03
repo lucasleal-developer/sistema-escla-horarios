@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -62,8 +62,14 @@ export default function Schedule() {
     }
   }, [selectedActivity]);
   
-  // Buscar horários disponíveis
-  const timeSlots: TimeSlot[] = [
+  // Buscar horários disponíveis com API
+  const { data: timeSlotsData, isLoading: isLoadingTimeSlots } = useQuery<TimeSlot[]>({
+    queryKey: ['/api/time-slots'],
+    queryFn: ({ queryKey }) => fetch(queryKey[0] as string).then(res => res.json()),
+  });
+  
+  // Horários padrão caso ainda não tenha carregado
+  const defaultTimeSlots = [
     { startTime: "08:00", endTime: "09:00" },
     { startTime: "09:00", endTime: "10:00" },
     { startTime: "10:00", endTime: "11:00" },
@@ -73,6 +79,8 @@ export default function Schedule() {
     { startTime: "15:00", endTime: "16:00" },
     { startTime: "16:00", endTime: "17:00" }
   ];
+  
+  const timeSlots: TimeSlot[] = timeSlotsData || defaultTimeSlots;
   
   // Query para buscar dados da escala
   const { data, isLoading, isError } = useQuery<ScheduleData>({

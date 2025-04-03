@@ -31,13 +31,13 @@ export type WeekDay = typeof weekdays[number];
 
 // Define os tipos de atividades disponíveis
 export const activityTypes = [
-  "plantao", 
-  "consulta",
-  "cirurgia",
+  "aula", 
   "reuniao",
-  "treinamento",
-  "exame",
-  "folga",
+  "plantao",
+  "estudo",
+  "evento",
+  "ferias",
+  "licenca",
   "disponivel",
 ] as const;
 
