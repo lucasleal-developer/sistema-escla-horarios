@@ -195,15 +195,21 @@ export function ScheduleStats() {
         
         {activityStats.length > 0 ? (
           <div className="h-60">
-            <Tabs defaultValue="columns" className="w-full">
-              <TabsList className="grid grid-cols-3 h-8 mb-4">
-                <TabsTrigger value="columns" className="text-xs">Colunas</TabsTrigger>
-                <TabsTrigger value="pie" className="text-xs">Pizza</TabsTrigger>
-                <TabsTrigger value="line" className="text-xs">Linha</TabsTrigger>
-              </TabsList>
+            <div>
+              <ul className="flex space-x-4 mb-4 border-b">
+                <li className="cursor-pointer px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
+                  Colunas
+                </li>
+                <li className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                  Pizza
+                </li>
+                <li className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                  Linha
+                </li>
+              </ul>
               
-              {/* Gráfico de Colunas */}
-              <TabsContent value="columns" className="mt-0">
+              {/* Gráfico de Colunas - Exibido por padrão */}
+              <div className="mt-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={activityStats}
@@ -231,68 +237,8 @@ export function ScheduleStats() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </TabsContent>
-              
-              {/* Gráfico de Pizza */}
-              <TabsContent value="pie" className="mt-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={activityStats}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      dataKey="count"
-                      nameKey="name"
-                    >
-                      {activityStats.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [`${value} atividades`, name]}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </TabsContent>
-              
-              {/* Gráfico de Linha */}
-              <TabsContent value="line" className="mt-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={activityStats}
-                    margin={{
-                      top: 5, right: 5, left: 5, bottom: 35,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={70}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value, name) => [`${value} atividades`, "Total"]}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="#8884d8" 
-                      strokeWidth={2}
-                      dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="h-48 bg-gray-50 rounded flex items-center justify-center">

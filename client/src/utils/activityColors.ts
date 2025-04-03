@@ -32,6 +32,29 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
 }
 
 // Obter cores para um tipo de atividade (aceita código ou objeto completo)
+// Função para mapear os códigos de atividades para suas respectivas definições de atividades
+// Isso é necessário para obter as cores personalizadas do banco de dados
+function getActivityTypeByCode(code: string): ActivityType | undefined {
+  // Obter os tipos de atividade através de uma chamada síncrona para resolver o problema de cache
+  try {
+    const response = fetch('/api/activity-types', { 
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    // Tenta buscar os dados mais recentes
+    const activityTypes = localStorage.getItem('activityTypes');
+    if (activityTypes) {
+      const types = JSON.parse(activityTypes) as ActivityType[];
+      return types.find(type => type.code === code);
+    }
+  } catch (error) {
+    console.error('Erro ao buscar tipos de atividades:', error);
+  }
+  
+  return undefined;
+}
+
 export function getActivityColor(activity: string | ActivityType): ActivityColor {
   // Caso padrão para atividade desconhecida
   const defaultColor = {
@@ -41,9 +64,32 @@ export function getActivityColor(activity: string | ActivityType): ActivityColor
     dot: "bg-gray-400"
   };
 
-  // Se for string (código), retorna cor padrão para esse código
+  // Se for objeto, usa a cor dele
+  if (activity && typeof activity === 'object' && 'color' in activity) {
+    const colorClasses = getColorClasses(activity.color);
+    return {
+      bg: colorClasses.bg,
+      hoverBg: colorClasses.hover,
+      text: colorClasses.text,
+      dot: colorClasses.dot
+    };
+  }
+  
+  // Se for string (código), tenta obter o tipo de atividade do banco
   if (typeof activity === 'string') {
-    // Para compatibilidade temporária com códigos antigos fixos
+    // Primeiro, verificar se existe uma definição personalizada no banco
+    const activityType = getActivityTypeByCode(activity);
+    if (activityType && activityType.color) {
+      const colorClasses = getColorClasses(activityType.color);
+      return {
+        bg: colorClasses.bg,
+        hoverBg: colorClasses.hover,
+        text: colorClasses.text,
+        dot: colorClasses.dot
+      };
+    }
+    
+    // Cores de fallback para compatibilidade
     switch (activity) {
       case "aula":
         return {
@@ -61,10 +107,10 @@ export function getActivityColor(activity: string | ActivityType): ActivityColor
         };
       case "plantao":
         return {
-          bg: "bg-green-100",
-          hoverBg: "hover:bg-green-200",
-          text: "text-green-800",
-          dot: "bg-green-500"
+          bg: "bg-yellow-100",  // Alterado para amarelo conforme solicitado
+          hoverBg: "hover:bg-yellow-200",
+          text: "text-yellow-800",
+          dot: "bg-yellow-500"
         };
       case "estudo":
         return {
@@ -104,17 +150,6 @@ export function getActivityColor(activity: string | ActivityType): ActivityColor
       default:
         return defaultColor;
     }
-  }
-
-  // Se for objeto, usa a cor dele
-  if (activity && typeof activity === 'object' && 'color' in activity) {
-    const colorClasses = getColorClasses(activity.color);
-    return {
-      bg: colorClasses.bg,
-      hoverBg: colorClasses.hover,
-      text: colorClasses.text,
-      dot: colorClasses.dot
-    };
   }
 
   return defaultColor;

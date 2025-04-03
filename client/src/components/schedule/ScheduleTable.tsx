@@ -47,6 +47,12 @@ export function ScheduleTable({
     queryKey: ["/api/activity-types"],
     staleTime: 0,
     refetchOnMount: true,
+    // Ao receber os dados, salvar no localStorage para uso em outras partes da aplicação
+    onSuccess: (data) => {
+      if (data) {
+        localStorage.setItem('activityTypes', JSON.stringify(data));
+      }
+    }
   });
   
   // Função para encontrar a atividade de um profissional em um determinado horário

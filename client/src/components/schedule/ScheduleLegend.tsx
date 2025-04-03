@@ -9,6 +9,12 @@ export function ScheduleLegend() {
     queryKey: ['/api/activity-types'],
     staleTime: 0,
     refetchOnMount: true,
+    // Ao receber os dados, salvar no localStorage para uso em outras partes da aplicação
+    onSuccess: (data) => {
+      if (data) {
+        localStorage.setItem('activityTypes', JSON.stringify(data));
+      }
+    }
   });
 
   if (isLoading) {
