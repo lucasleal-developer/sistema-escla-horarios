@@ -66,6 +66,8 @@ export function EditScheduleModal({
   weekday,
   isNew = false
 }: EditScheduleModalProps) {
+  const [selectedActivity, setSelectedActivity] = useState<string>(currentActivity?.atividade || "disponivel");
+  
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleFormSchema),
     defaultValues: {
@@ -82,20 +84,35 @@ export function EditScheduleModal({
   // Atualiza o formulário quando os props mudam
   useEffect(() => {
     if (isOpen) {
+      const activityValue = currentActivity?.atividade || "disponivel";
+      setSelectedActivity(activityValue);
+      
       reset({
         professionalId: professional?.id || 0,
         weekday: weekday,
         startTime: timeSlot?.startTime || "",
         endTime: timeSlot?.endTime || "",
-        activity: currentActivity?.atividade || "disponivel",
+        activity: activityValue,
         location: currentActivity?.local || "",
         notes: currentActivity?.observacoes || ""
       });
     }
   }, [isOpen, professional, timeSlot, currentActivity, weekday, reset]);
   
+  const handleActivityChange = (value: string) => {
+    setSelectedActivity(value);
+    setValue("activity", value);
+    console.log("Atividade selecionada:", value);
+  };
+  
   const onSubmit = (data: ScheduleFormValues) => {
-    onSave(data);
+    // Certifica-se que a atividade selecionada está no objeto de dados
+    const submittedData = {
+      ...data,
+      activity: selectedActivity
+    };
+    console.log("Dados enviados:", submittedData);
+    onSave(submittedData);
     onClose();
   };
   
@@ -157,7 +174,8 @@ export function EditScheduleModal({
           <div className="mb-4">
             <Label htmlFor="activity">Atividade</Label>
             <Select 
-              onValueChange={(value) => setValue("activity", value)} 
+              onValueChange={handleActivityChange}
+              value={selectedActivity}
               defaultValue={currentActivity?.atividade || "disponivel"}
             >
               <SelectTrigger className="w-full mt-1">
@@ -171,7 +189,7 @@ export function EditScheduleModal({
                 ))}
               </SelectContent>
             </Select>
-            <input type="hidden" {...register("activity")} />
+            <input type="hidden" {...register("activity")} value={selectedActivity} />
             {errors.activity && (
               <p className="text-xs text-red-500 mt-1">{errors.activity.message}</p>
             )}

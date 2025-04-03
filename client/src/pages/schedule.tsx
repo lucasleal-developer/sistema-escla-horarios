@@ -153,6 +153,7 @@ export default function Schedule() {
   
   // Função para salvar a atividade
   const handleSaveActivity = (formData: ScheduleFormValues) => {
+    console.log("Salvando atividade:", formData);
     saveSchedule(formData);
   };
   
