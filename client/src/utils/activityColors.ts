@@ -23,12 +23,81 @@ const colorMap: Record<string, { bg: string, hover: string, text: string, dot: s
   "#f59e0b": { bg: "bg-amber-100", hover: "hover:bg-amber-200", text: "text-amber-800", dot: "bg-amber-500" },
   "#10b981": { bg: "bg-emerald-100", hover: "hover:bg-emerald-200", text: "text-emerald-800", dot: "bg-emerald-500" },
   "#6b7280": { bg: "bg-gray-100", hover: "hover:bg-gray-200", text: "text-gray-800", dot: "bg-gray-400" },
-  "#64748b": { bg: "bg-slate-100", hover: "hover:bg-slate-200", text: "text-slate-800", dot: "bg-slate-500" }
+  "#64748b": { bg: "bg-slate-100", hover: "hover:bg-slate-200", text: "text-slate-800", dot: "bg-slate-500" },
+  
+  // Adicionar algumas cores customizadas comuns
+  "#ffff00": { bg: "bg-yellow-100", hover: "hover:bg-yellow-200", text: "text-yellow-800", dot: "bg-yellow-500" }, // Amarelo puro
+  "#ff0000": { bg: "bg-red-100", hover: "hover:bg-red-200", text: "text-red-800", dot: "bg-red-500" }, // Vermelho puro
+  "#00ff00": { bg: "bg-green-100", hover: "hover:bg-green-200", text: "text-green-800", dot: "bg-green-500" }, // Verde puro
+  "#0000ff": { bg: "bg-blue-100", hover: "hover:bg-blue-200", text: "text-blue-800", dot: "bg-blue-500" }, // Azul puro
 };
+
+// Função para verificar se uma string é uma cor hexadecimal válida
+function isValidHexColor(color: string): boolean {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+}
+
+// Função para extrair os componentes RGB de uma cor hexadecimal
+function hexToRgb(hex: string): { r: number, g: number, b: number } | null {
+  // Remover o # se existir
+  const sanitizedHex = hex.startsWith('#') ? hex.slice(1) : hex;
+  
+  // Expandir formato curto (ex: #ABC para #AABBCC)
+  const normalizedHex = sanitizedHex.length === 3
+    ? sanitizedHex.split('').map(char => char + char).join('')
+    : sanitizedHex;
+  
+  // Converter para RGB
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(normalizedHex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      }
+    : null;
+}
+
+// Função para determinar se uma cor é clara ou escura
+function isLightColor(r: number, g: number, b: number): boolean {
+  // Fórmula de luminância perceptiva (percepção humana da claridade)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5; // > 0.5 é considerada clara
+}
+
+// Determinar a cor do texto com base na cor de fundo
+function getTextColor(hex: string): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return "text-gray-800"; // Fallback
+  
+  return isLightColor(rgb.r, rgb.g, rgb.b) ? "text-gray-800" : "text-white";
+}
 
 // Conversão de código de cor para classes Tailwind
 export function getColorClasses(colorHex: string): { bg: string, hover: string, text: string, dot: string } {
-  return colorMap[colorHex] || { bg: "bg-gray-100", hover: "hover:bg-gray-200", text: "text-gray-800", dot: "bg-gray-400" };
+  // Verificar se a cor está no mapa pré-definido
+  if (colorMap[colorHex]) {
+    return colorMap[colorHex];
+  }
+  
+  // Verificar se é uma cor hexadecimal válida
+  if (isValidHexColor(colorHex)) {
+    // Criar classes de cores dinâmicas com estilos inline
+    const textColor = getTextColor(colorHex);
+    const bgColor = `bg-[${colorHex}]`;
+    const bgLighter = `bg-[${colorHex}33]`; // Adicionando transparência para o fundo
+    const hoverColor = `hover:bg-[${colorHex}55]`; // Adicionando transparência para o hover
+    
+    return {
+      bg: bgLighter, // Fundo claro com 20% de opacidade
+      hover: hoverColor, // Hover mais escuro com 33% de opacidade
+      text: textColor, // Texto adaptativo
+      dot: bgColor // Ponto com a cor completa
+    };
+  }
+  
+  // Fallback para cinza se a cor não for válida
+  return { bg: "bg-gray-100", hover: "hover:bg-gray-200", text: "text-gray-800", dot: "bg-gray-400" };
 }
 
 // Obter cores para um tipo de atividade (aceita código ou objeto completo)

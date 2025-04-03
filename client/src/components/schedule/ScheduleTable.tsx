@@ -43,12 +43,12 @@ export function ScheduleTable({
   
   // Buscar os tipos de atividades para obter as cores
   // O staleTime: 0 garante que os dados serão atualizados sempre que o componente for montado
-  const { data: activityTypesData } = useQuery({
+  const { data: activityTypesData } = useQuery<ActivityType[]>({
     queryKey: ["/api/activity-types"],
     staleTime: 0,
     refetchOnMount: true,
     // Ao receber os dados, salvar no localStorage para uso em outras partes da aplicação
-    onSuccess: (data) => {
+    onSuccess: (data: ActivityType[]) => {
       if (data) {
         localStorage.setItem('activityTypes', JSON.stringify(data));
       }
