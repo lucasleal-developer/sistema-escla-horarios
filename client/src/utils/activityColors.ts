@@ -88,15 +88,13 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
       return { bg: "bg-gray-100", hover: "hover:bg-gray-200", text: "text-gray-800", dot: "bg-gray-400" };
     }
     
-    // Determinar se a cor é clara ou escura
-    const isLight = isLightColor(rgb.r, rgb.g, rgb.b);
-    
     // Em vez de tentar adivinhar a classe de cor do Tailwind,
     // vamos sempre usar a cor personalizada diretamente com CSS inline
+    // E como os cards usam cor com transparência, vamos sempre manter o texto escuro
     return {
       bg: "bg-custom-color",        // Será substituído por inline style
       hover: "hover-custom-color",  // Será substituído por eventos JS
-      text: isLight ? "text-gray-800" : "text-white",
+      text: "text-gray-800",        // Sempre manter o texto escuro, independente da cor do fundo
       dot: "bg-custom-color"        // Será substituído por inline style
     };
   }
