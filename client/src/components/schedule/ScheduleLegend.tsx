@@ -37,16 +37,24 @@ export function ScheduleLegend() {
           const useCustomDot = colorClasses.dot === "bg-custom-color";
           
           return (
-            <div key={activityType.id} className="flex items-center">
-              {useCustomDot ? (
-                <div 
-                  className="h-3 w-3 rounded-full mr-2" 
-                  style={{ backgroundColor: activityType.color }}
-                ></div>
-              ) : (
-                <div className={`h-3 w-3 rounded-full ${colorClasses.dot} mr-2`}></div>
-              )}
-              <span className="text-xs text-gray-700">{activityType.name}</span>
+            <div key={activityType.id} className="flex items-center p-1 rounded">
+              <div className={`flex items-center ${!useCustomDot ? `${colorClasses.bg} px-2 py-1 rounded` : ''}`}
+                style={useCustomDot ? {
+                  backgroundColor: `${activityType.color}15`, // 15% de opacidade
+                  padding: '4px 8px',
+                  borderRadius: '0.25rem',
+                } : {}}
+              >
+                {useCustomDot ? (
+                  <div 
+                    className="h-3 w-3 rounded-full mr-2" 
+                    style={{ backgroundColor: activityType.color }}
+                  ></div>
+                ) : (
+                  <div className={`h-3 w-3 rounded-full ${colorClasses.dot} mr-2`}></div>
+                )}
+                <span className="text-xs text-gray-700">{activityType.name}</span>
+              </div>
             </div>
           );
         })}

@@ -240,9 +240,23 @@ export function ScheduleTable({
                   return (
                     <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">
                       <div 
-                        className={`${colors.bg} ${colors.hoverBg} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative
+                        className={`${!useCustomDot ? `${colors.bg} ${colors.hoverBg}` : ''} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative
                           ${isSelectionMode && isCellSelected(professional, timeSlot) ? 'ring-2 ring-offset-1 ring-primary' : ''}
                         `}
+                        style={useCustomDot ? {
+                          backgroundColor: `${customColor}25`, // 25% de opacidade
+                          transition: 'background-color 0.15s ease-in-out',
+                        } : {}}
+                        onMouseOver={(e) => {
+                          if (useCustomDot) {
+                            e.currentTarget.style.backgroundColor = `${customColor}40`; // 40% de opacidade para hover
+                          }
+                        }}
+                        onMouseOut={(e) => {
+                          if (useCustomDot) {
+                            e.currentTarget.style.backgroundColor = `${customColor}25`; // 25% de opacidade para normal
+                          }
+                        }}
                         onClick={() => handleCellClick(professional, timeSlot, activity)}
                       >
                         <div className="flex items-center mb-1">
