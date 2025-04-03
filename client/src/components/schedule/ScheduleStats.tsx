@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getActivityColor } from "@/utils/activityColors";
-import { type Schedule, type ActivityType, weekdays } from "@shared/schema";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { type ActivityType, weekdays } from "@shared/schema";
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line 
+} from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Interface para estatísticas dinâmicas baseadas nas atividades existentes
 interface ActivityCount {
@@ -17,23 +21,56 @@ export function ScheduleStats() {
   const [totalActivities, setTotalActivities] = useState(0);
   
   // Buscar tipos de atividades
-  const { data: activityTypes } = useQuery<ActivityType[]>({
+  const { data: activityTypes, isLoading: isActivityTypesLoading } = useQuery<ActivityType[]>({
     queryKey: ['/api/activity-types'],
+    staleTime: 60000, // 1 minuto
   });
   
-  // Buscar dados de agendamentos para todos os dias da semana
-  const scheduleQueries = weekdays.map(day => {
-    return useQuery<any>({
-      queryKey: [`/api/schedules/${day}`],
-      // Desabilitar a refetch automática para não sobrecarregar o servidor
-      refetchOnWindowFocus: false
-    });
+  // Buscar dados para segunda-feira
+  const { data: segunda, isLoading: isSegundaLoading } = useQuery<any>({
+    queryKey: ['/api/schedules/segunda'],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minuto
   });
   
-  // Todos os dados de agendamento estão carregados?
-  const isLoading = scheduleQueries.some(query => query.isLoading);
+  // Buscar dados para terça-feira
+  const { data: terca, isLoading: isTercaLoading } = useQuery<any>({
+    queryKey: ['/api/schedules/terca'],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minuto
+  });
   
-  // Processo de calcular estatísticas baseadas nos dados reais
+  // Buscar dados para quarta-feira
+  const { data: quarta, isLoading: isQuartaLoading } = useQuery<any>({
+    queryKey: ['/api/schedules/quarta'],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minuto
+  });
+  
+  // Buscar dados para quinta-feira
+  const { data: quinta, isLoading: isQuintaLoading } = useQuery<any>({
+    queryKey: ['/api/schedules/quinta'],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minuto
+  });
+  
+  // Buscar dados para sexta-feira
+  const { data: sexta, isLoading: isSextaLoading } = useQuery<any>({
+    queryKey: ['/api/schedules/sexta'],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minuto
+  });
+  
+  // Verificar se todos os dados estão carregados
+  const isLoading = 
+    isActivityTypesLoading || 
+    isSegundaLoading || 
+    isTercaLoading || 
+    isQuartaLoading || 
+    isQuintaLoading || 
+    isSextaLoading;
+  
+  // Gerar as estatísticas a partir dos dados
   useEffect(() => {
     if (isLoading || !activityTypes) return;
     
@@ -48,9 +85,10 @@ export function ScheduleStats() {
     // Contagem de atividades em todos os dias
     let total = 0;
     
-    scheduleQueries.forEach(query => {
-      if (query.data && query.data.profissionais) {
-        query.data.profissionais.forEach((prof: any) => {
+    // Função para processar dados de um dia
+    const processDay = (dayData: any) => {
+      if (dayData && dayData.profissionais) {
+        dayData.profissionais.forEach((prof: any) => {
           if (prof.horarios && Array.isArray(prof.horarios)) {
             prof.horarios.forEach((horario: any) => {
               const activityCode = horario.atividade;
@@ -63,7 +101,14 @@ export function ScheduleStats() {
           }
         });
       }
-    });
+    };
+    
+    // Processar cada dia da semana
+    processDay(segunda);
+    processDay(terca);
+    processDay(quarta);
+    processDay(quinta);
+    processDay(sexta);
     
     // Converter para array para renderização
     const statsArray: ActivityCount[] = [];
@@ -71,7 +116,6 @@ export function ScheduleStats() {
     activityTypes.forEach(type => {
       const count = activityCounts.get(type.code) || 0;
       if (count > 0) { // Só mostrar atividades que foram usadas
-        const colorObj = getActivityColor(type);
         statsArray.push({
           name: type.name,
           code: type.code,
@@ -84,7 +128,15 @@ export function ScheduleStats() {
     
     setActivityStats(statsArray);
     setTotalActivities(total);
-  }, [scheduleQueries, activityTypes, isLoading]);
+  }, [
+    activityTypes,
+    isLoading,
+    segunda,
+    terca, 
+    quarta,
+    quinta,
+    sexta
+  ]);
   
   if (isLoading) {
     return (
@@ -137,30 +189,110 @@ export function ScheduleStats() {
       </div>
       
       <div className="bg-white shadow rounded-lg p-4 col-span-1 md:col-span-2">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Distribuição de Atividades</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-medium text-gray-700">Distribuição de Atividades</h3>
+        </div>
+        
         {activityStats.length > 0 ? (
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={activityStats}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  dataKey="count"
-                  nameKey="name"
-                >
-                  {activityStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => [`${value} atividades`, name]}
-                  contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-60">
+            <Tabs defaultValue="columns" className="w-full">
+              <TabsList className="grid grid-cols-3 h-8 mb-4">
+                <TabsTrigger value="columns" className="text-xs">Colunas</TabsTrigger>
+                <TabsTrigger value="pie" className="text-xs">Pizza</TabsTrigger>
+                <TabsTrigger value="line" className="text-xs">Linha</TabsTrigger>
+              </TabsList>
+              
+              {/* Gráfico de Colunas */}
+              <TabsContent value="columns" className="mt-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={activityStats}
+                    margin={{
+                      top: 5, right: 5, left: 5, bottom: 35,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [`${value} atividades`, "Total"]}
+                      contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
+                    />
+                    <Bar dataKey="count" name="Quantidade">
+                      {activityStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </TabsContent>
+              
+              {/* Gráfico de Pizza */}
+              <TabsContent value="pie" className="mt-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={activityStats}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      dataKey="count"
+                      nameKey="name"
+                    >
+                      {activityStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [`${value} atividades`, name]}
+                      contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </TabsContent>
+              
+              {/* Gráfico de Linha */}
+              <TabsContent value="line" className="mt-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={activityStats}
+                    margin={{
+                      top: 5, right: 5, left: 5, bottom: 35,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [`${value} atividades`, "Total"]}
+                      contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#8884d8" 
+                      strokeWidth={2}
+                      dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="h-48 bg-gray-50 rounded flex items-center justify-center">

@@ -42,8 +42,11 @@ export function ScheduleTable({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   
   // Buscar os tipos de atividades para obter as cores
+  // O staleTime: 0 garante que os dados serão atualizados sempre que o componente for montado
   const { data: activityTypesData } = useQuery({
     queryKey: ["/api/activity-types"],
+    staleTime: 0,
+    refetchOnMount: true,
   });
   
   // Função para encontrar a atividade de um profissional em um determinado horário

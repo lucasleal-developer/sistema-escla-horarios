@@ -4,8 +4,11 @@ import { type ActivityType } from "@shared/schema";
 
 export function ScheduleLegend() {
   // Buscar os tipos de atividades do sistema
+  // O staleTime: 0 garante que os dados serão atualizados sempre que o componente for montado
   const { data: activityTypesData, isLoading } = useQuery<ActivityType[]>({
     queryKey: ['/api/activity-types'],
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   if (isLoading) {
