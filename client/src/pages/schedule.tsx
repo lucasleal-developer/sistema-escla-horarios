@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+// Adicionando o React para corrigir o erro de compilação
+import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -6,7 +8,11 @@ import { format } from "date-fns";
 import { 
   type WeekDay, 
   type ScheduleFormValues, 
-  type ActivityType 
+  type ActivityType,
+  type ScheduleTimeSlot,
+  type ScheduleActivity,
+  type ScheduleProfessional,
+  type ScheduleTableData
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -19,31 +25,7 @@ import { ScheduleLegend } from "@/components/schedule/ScheduleLegend";
 import { ScheduleStats } from "@/components/schedule/ScheduleStats";
 import { EditScheduleModal } from "@/components/schedule/EditScheduleModal";
 
-interface TimeSlot {
-  startTime: string;
-  endTime: string;
-}
-
-interface Activity {
-  id: number;
-  hora: string;
-  horaFim: string;
-  atividade: string; // Agora é string (código da atividade)
-  local: string;
-  observacoes: string;
-}
-
-interface Professional {
-  id: number;
-  nome: string;
-  iniciais: string;
-  horarios: Activity[];
-}
-
-interface ScheduleData {
-  dia: string;
-  profissionais: Professional[];
-}
+// Usando interfaces compartilhadas definidas no schema
 
 export default function Schedule() {
   const { toast } = useToast();
@@ -51,9 +33,9 @@ export default function Schedule() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [isNewActivity, setIsNewActivity] = useState(false);
-  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>(undefined);
+  const [selectedProfessional, setSelectedProfessional] = useState<ScheduleProfessional | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<ScheduleTimeSlot | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ScheduleActivity | undefined>(undefined);
   
   // Debug para verificar o que está sendo selecionado
   useEffect(() => {
@@ -63,13 +45,13 @@ export default function Schedule() {
   }, [selectedActivity]);
   
   // Buscar horários disponíveis com API
-  const { data: timeSlotsData, isLoading: isLoadingTimeSlots } = useQuery<TimeSlot[]>({
+  const { data: timeSlotsData, isLoading: isLoadingTimeSlots } = useQuery<ScheduleTimeSlot[]>({
     queryKey: ['/api/time-slots'],
     queryFn: ({ queryKey }) => fetch(queryKey[0] as string).then(res => res.json()),
   });
   
   // Horários padrão caso ainda não tenha carregado
-  const defaultTimeSlots = [
+  const defaultTimeSlots: ScheduleTimeSlot[] = [
     { startTime: "08:00", endTime: "09:00" },
     { startTime: "09:00", endTime: "10:00" },
     { startTime: "10:00", endTime: "11:00" },
@@ -80,10 +62,10 @@ export default function Schedule() {
     { startTime: "16:00", endTime: "17:00" }
   ];
   
-  const timeSlots: TimeSlot[] = timeSlotsData || defaultTimeSlots;
+  const timeSlots: ScheduleTimeSlot[] = timeSlotsData || defaultTimeSlots;
   
   // Query para buscar dados da escala
-  const { data, isLoading, isError } = useQuery<ScheduleData>({
+  const { data, isLoading, isError } = useQuery<ScheduleTableData>({
     queryKey: [`/api/schedules/${selectedDay}`],
     queryFn: ({ queryKey }) => fetch(queryKey[0] as string).then(res => res.json()),
   });
@@ -146,7 +128,7 @@ export default function Schedule() {
   }, [isError, toast]);
   
   // Função para abrir o modal de edição
-  const handleCellClick = (professional: Professional, timeSlot: TimeSlot, activity?: Activity) => {
+  const handleCellClick = (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot, activity?: ScheduleActivity) => {
     setSelectedProfessional(professional);
     setSelectedTimeSlot(timeSlot);
     setSelectedActivity(activity);

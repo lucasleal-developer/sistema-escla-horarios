@@ -154,3 +154,30 @@ export const activityTypeSchema = z.object({
 });
 
 export type ActivityTypeFormValues = z.infer<typeof activityTypeSchema>;
+
+// Interfaces para a exibição de dados na tabela de horários (frontend)
+export interface ScheduleTimeSlot {
+  startTime: string;
+  endTime: string;
+}
+
+export interface ScheduleActivity {
+  id: number;
+  hora: string;
+  horaFim: string;
+  atividade: string; // Código da atividade
+  local: string;
+  observacoes: string;
+}
+
+export interface ScheduleProfessional {
+  id: number;
+  nome: string;
+  iniciais: string;
+  horarios: ScheduleActivity[];
+}
+
+export interface ScheduleTableData {
+  dia: string;
+  profissionais: ScheduleProfessional[];
+}

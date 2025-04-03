@@ -311,8 +311,23 @@ export default function Settings() {
     setActivityModalOpen(true);
   };
   
+  // Função para gerar automaticamente um código a partir do nome
+  const generateCodeFromName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+      .replace(/[^a-z0-9]+/g, "_") // Substitui caracteres não alfanuméricos por _
+      .replace(/^_+|_+$/g, ""); // Remove underscores do início e fim
+  };
+  
   // Função para salvar o tipo de atividade
   const onSubmitActivityType = (data: ActivityTypeFormValues) => {
+    // Caso o código esteja vazio, gera um código com base no nome
+    if (!data.code.trim()) {
+      data.code = generateCodeFromName(data.name);
+    }
+    
     if (editingActivityId) {
       saveActivityType({ ...data, id: editingActivityId });
     } else {
@@ -755,7 +770,16 @@ export default function Settings() {
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: Aula Normal" {...field} />
+                        <Input 
+                          placeholder="Ex: Aula Normal" 
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Atualizar campo código automaticamente
+                            const code = generateCodeFromName(e.target.value);
+                            activityForm.setValue("code", code);
+                          }}
+                        />
                       </FormControl>
                       <FormDescription>
                         Nome descritivo do tipo de atividade.
@@ -772,10 +796,15 @@ export default function Settings() {
                     <FormItem>
                       <FormLabel>Código</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: aula_normal" {...field} />
+                        <Input 
+                          placeholder="Gerado automaticamente"
+                          {...field}
+                          readOnly
+                          className="bg-gray-50"
+                        />
                       </FormControl>
                       <FormDescription>
-                        Identificador único para esta atividade (sem espaços).
+                        Identificador único gerado automaticamente com base no nome.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
