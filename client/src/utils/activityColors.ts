@@ -107,21 +107,17 @@ export function getColorClasses(colorHex: string): { bg: string, hover: string, 
 // Função para mapear os códigos de atividades para suas respectivas definições de atividades
 // Isso é necessário para obter as cores personalizadas do banco de dados
 function getActivityTypeByCode(code: string): ActivityType | undefined {
-  // Obter os tipos de atividade através de uma chamada síncrona para resolver o problema de cache
+  // Vamos apenas buscar do localStorage em vez de fazer uma chamada fetch,
+  // pois a chamada fetch já é feita pelo useQuery no componente ScheduleTable
   try {
-    const response = fetch('/api/activity-types', { 
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    // Tenta buscar os dados mais recentes
+    // Tenta buscar os dados do localStorage
     const activityTypes = localStorage.getItem('activityTypes');
     if (activityTypes) {
       const types = JSON.parse(activityTypes) as ActivityType[];
       return types.find(type => type.code === code);
     }
   } catch (error) {
-    console.error('Erro ao buscar tipos de atividades:', error);
+    console.error('Erro ao buscar tipos de atividades do localStorage:', error);
   }
   
   return undefined;
