@@ -1,22 +1,98 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Search, Filter, X, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { type Professional } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+
+// Interface adaptada para Professional com campos em português
+interface ProfessionalDisplay {
+  id: number;
+  nome: string;
+  iniciais: string;
+  active?: number;
+}
 
 interface ScheduleActionsProps {
   selectedDay: string;
   lastUpdate?: string;
-  onSearch: (query: string) => void;
-  onOpenNewModal: () => void;
+  onSearch: (professionals: {id: number, nome: string, iniciais: string}[]) => void;
+  onFilter: (filters: FilterOptions) => void;
+}
+
+export interface FilterOptions {
+  showEmptySlots: boolean;
+  activityTypes: string[];
 }
 
 export function ScheduleActions({ 
   selectedDay, 
   lastUpdate, 
-  onSearch, 
-  onOpenNewModal 
+  onSearch,
+  onFilter
 }: ScheduleActionsProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<ProfessionalDisplay[]>([]);
+  const [selectedProfessionals, setSelectedProfessionals] = useState<ProfessionalDisplay[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    showEmptySlots: true,
+    activityTypes: []
+  });
+  
+  const searchRef = useRef<HTMLDivElement>(null);
+  
+  // Buscar profissionais da API
+  const { data: apiProfessionals } = useQuery<Professional[]>({
+    queryKey: ['/api/professionals'],
+  });
+  
+  // Converter os dados da API para o formato interno
+  const professionals = useMemo(() => {
+    if (!apiProfessionals) return [];
+    
+    return apiProfessionals.map(prof => ({
+      id: prof.id,
+      nome: prof.name, // Convertendo o campo name para nome
+      iniciais: prof.initials, // Convertendo de initials para iniciais
+      active: prof.active
+    }));
+  }, [apiProfessionals]);
+  
+  // Atualizar sugestões baseadas na consulta de pesquisa
+  useEffect(() => {
+    if (!professionals || searchQuery.length < 1) {
+      setSuggestions([]);
+      return;
+    }
+    
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+    const filteredProfessionals = professionals.filter(
+      prof => prof.nome.toLowerCase().includes(normalizedQuery)
+    );
+    
+    setSuggestions(filteredProfessionals);
+  }, [searchQuery, professionals]);
+  
+  // Buscar tipos de atividades para filtros
+  const { data: activityTypes } = useQuery({
+    queryKey: ['/api/activity-types'],
+  });
   
   // Função para formatar o dia da semana
   const formatDayName = (day: string): string => {
@@ -33,15 +109,68 @@ export function ScheduleActions({
     return dayNames[day] || day;
   };
   
-  const handleSearch = () => {
-    onSearch(searchQuery);
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  // Adicionar ou remover profissional da seleção
+  const toggleProfessional = (professional: ProfessionalDisplay) => {
+    const index = selectedProfessionals.findIndex(p => p.id === professional.id);
+    
+    if (index === -1) {
+      // Adicionar
+      setSelectedProfessionals([...selectedProfessionals, professional]);
+    } else {
+      // Remover
+      const updated = [...selectedProfessionals];
+      updated.splice(index, 1);
+      setSelectedProfessionals(updated);
     }
   };
+  
+  // Verificar se um profissional está selecionado
+  const isProfessionalSelected = (id: number): boolean => {
+    return selectedProfessionals.some(p => p.id === id);
+  };
+  
+  // Remover profissional da seleção
+  const removeProfessional = (id: number) => {
+    setSelectedProfessionals(selectedProfessionals.filter(p => p.id !== id));
+  };
+  
+  // Fechar menu de sugestões quando clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+  
+  // Atualizar os filtros de tipos de atividades
+  const toggleActivityTypeFilter = (code: string) => {
+    setFilterOptions(prev => {
+      const activityTypes = prev.activityTypes.includes(code)
+        ? prev.activityTypes.filter(t => t !== code)
+        : [...prev.activityTypes, code];
+      
+      return {
+        ...prev,
+        activityTypes
+      };
+    });
+  };
+  
+  // Aplicar filtros
+  const applyFilters = () => {
+    onFilter(filterOptions);
+  };
+  
+  // Aplicar busca quando a seleção de profissionais mudar
+  useEffect(() => {
+    onSearch(selectedProfessionals);
+  }, [selectedProfessionals, onSearch]);
   
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
@@ -53,26 +182,116 @@ export function ScheduleActions({
           </span>
         )}
       </div>
-      <div className="flex space-x-2">
-        <div className="relative">
-          <Input
-            type="text"
-            className="pl-8"
-            placeholder="Buscar profissional..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <Search className="h-4 w-4 text-gray-400 absolute left-2.5 top-2.5" />
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        {/* Área de seleção de profissionais */}
+        <div className="w-full sm:w-auto" ref={searchRef}>
+          <div className="relative">
+            <Input
+              type="text"
+              className="pl-8"
+              placeholder="Buscar profissional..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchOpen(true);
+              }}
+              onFocus={() => setIsSearchOpen(true)}
+            />
+            <Search className="h-4 w-4 text-gray-400 absolute left-2.5 top-2.5" />
+          </div>
+          
+          {/* Lista de profissionais selecionados */}
+          {selectedProfessionals.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {selectedProfessionals.map(prof => (
+                <Badge 
+                  key={prof.id} 
+                  variant="secondary"
+                  className="flex items-center space-x-1"
+                >
+                  <span>{prof.nome}</span>
+                  <button
+                    onClick={() => removeProfessional(prof.id)}
+                    className="ml-1 rounded-full hover:bg-gray-200 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          
+          {/* Sugestões de busca */}
+          {isSearchOpen && suggestions.length > 0 && (
+            <div className="absolute z-50 w-full max-w-md bg-white mt-1 rounded-md border shadow-sm">
+              <ul className="py-1 max-h-60 overflow-auto">
+                {suggestions.map(prof => (
+                  <li 
+                    key={prof.id}
+                    className={`
+                      px-3 py-2 flex items-center justify-between cursor-pointer
+                      ${isProfessionalSelected(prof.id) ? 'bg-gray-100' : 'hover:bg-gray-50'}
+                    `}
+                    onClick={() => toggleProfessional(prof)}
+                  >
+                    <div className="flex items-center">
+                      <div className="h-6 w-6 flex-shrink-0 rounded-full bg-primary-100 flex items-center justify-center mr-2">
+                        <span className="text-primary-700 font-medium text-xs">{prof.iniciais}</span>
+                      </div>
+                      <span>{prof.nome}</span>
+                    </div>
+                    {isProfessionalSelected(prof.id) && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-        <Button variant="outline" className="inline-flex items-center">
-          <Filter className="h-4 w-4 mr-2" />
-          Filtrar
-        </Button>
-        <Button onClick={onOpenNewModal} className="inline-flex items-center">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo
-        </Button>
+        
+        {/* Menu de filtros */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="inline-flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtrar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Opções de Filtro</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuCheckboxItem
+              checked={filterOptions.showEmptySlots}
+              onCheckedChange={(checked) => 
+                setFilterOptions(prev => ({ ...prev, showEmptySlots: !!checked }))
+              }
+            >
+              Mostrar horários vazios
+            </DropdownMenuCheckboxItem>
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Tipos de Atividades</DropdownMenuLabel>
+            
+            {Array.isArray(activityTypes) && activityTypes.map((type: any) => (
+              <DropdownMenuCheckboxItem
+                key={type.id}
+                checked={filterOptions.activityTypes.includes(type.code)}
+                onCheckedChange={() => toggleActivityTypeFilter(type.code)}
+              >
+                {type.name}
+              </DropdownMenuCheckboxItem>
+            ))}
+            
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <Button size="sm" className="w-full" onClick={applyFilters}>
+                Aplicar Filtros
+              </Button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

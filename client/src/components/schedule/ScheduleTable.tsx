@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { 
   type ActivityType, 
   type ScheduleTimeSlot,
@@ -29,6 +29,11 @@ interface ScheduleTableProps {
   isLoading: boolean;
   onCellClick: (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot, activity?: ScheduleActivity) => void;
   onSelectedCellsChange?: (cells: SelectedCell[]) => void;
+  filteredProfessionals?: ScheduleProfessional[] | null;
+  filterOptions?: {
+    showEmptySlots: boolean;
+    activityTypes: string[];
+  };
 }
 
 export function ScheduleTable({ 
@@ -36,7 +41,9 @@ export function ScheduleTable({
   timeSlots, 
   isLoading, 
   onCellClick,
-  onSelectedCellsChange 
+  onSelectedCellsChange,
+  filteredProfessionals,
+  filterOptions
 }: ScheduleTableProps) {
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -124,10 +131,35 @@ export function ScheduleTable({
     }
   }, [selectedCells, onSelectedCellsChange]);
   
-  // Memorizar os profissionais para evitar recálculos desnecessários
+  // Memorizar os profissionais com base nos filtros
   const professionals = useMemo(() => {
-    return data?.profissionais || [];
-  }, [data]);
+    // Se não há dados, retorna array vazio
+    if (!data?.profissionais) return [];
+    
+    // Se há profissionais filtrados, use-os
+    if (filteredProfessionals && filteredProfessionals.length > 0) {
+      return filteredProfessionals;
+    }
+    
+    // Caso contrário, use todos os profissionais
+    return data.profissionais;
+  }, [data, filteredProfessionals]);
+  
+  // Função para verificar se uma atividade corresponde aos filtros
+  const matchesActivityFilter = useCallback((activityCode: string | undefined) => {
+    // Se não há filtros de tipo de atividade definidos ou estão vazios, retorna true
+    if (!filterOptions || !filterOptions.activityTypes || filterOptions.activityTypes.length === 0) {
+      return true;
+    }
+    
+    // Se não há código de atividade, verificar se estamos exibindo slots vazios
+    if (!activityCode) {
+      return filterOptions.showEmptySlots;
+    }
+    
+    // Verifica se o código da atividade está nos filtros
+    return filterOptions.activityTypes.includes(activityCode);
+  }, [filterOptions]);
   
   if (isLoading) {
     return (
@@ -228,6 +260,26 @@ export function ScheduleTable({
                   // Se não encontrar, usamos o código "disponivel_horario" como fallback
                   const activityCode = activity?.atividade || "disponivel_horario";
                   const activityName = activityTypeObj?.name || getActivityName(activityCode);
+                  
+                  // Verificar se este item deve ser filtrado com base nos tipos de atividade
+                  const matchesFilter = (!filterOptions || !filterOptions.activityTypes || filterOptions.activityTypes.length === 0 || 
+                    filterOptions.activityTypes.includes(activityCode) || 
+                    (!activity && filterOptions.showEmptySlots));
+                  
+                  // Se não corresponder aos filtros, renderizar uma célula em cinza claro
+                  if (filterOptions && !matchesFilter) {
+                    return (
+                      <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">
+                        <div className="bg-gray-50 rounded p-2 min-h-[70px] opacity-50">
+                          <div className="flex items-center mb-1">
+                            <span className="text-xs text-gray-400">
+                              Filtrado
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    );
+                  }
                   
                   // Obter as cores do tipo de atividade (seja do objeto ou do código)
                   const colors = getActivityColor(activityTypeObj || activityCode);

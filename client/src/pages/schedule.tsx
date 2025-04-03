@@ -12,7 +12,8 @@ import {
   type ScheduleTimeSlot,
   type ScheduleActivity,
   type ScheduleProfessional,
-  type ScheduleTableData
+  type ScheduleTableData,
+  type Professional
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -210,11 +211,41 @@ export default function Schedule() {
     }
   };
   
-  // Função para filtrar por profissional
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // Implementação da busca seria feita aqui
-    // Como é apenas um filtro de UI, podemos implementar posteriormente
+  // Filtros aplicados na visualização
+  const [filteredProfessionals, setFilteredProfessionals] = useState<ScheduleProfessional[] | null>(null);
+  const [filterOptions, setFilterOptions] = useState({
+    showEmptySlots: true,
+    activityTypes: [] as string[]
+  });
+  
+  // Função para filtrar profissionais pelo nome
+  const handleProfessionalsSearch = (professionals: {id: number, nome: string, iniciais: string}[]) => {
+    if (!data || !data.profissionais) return;
+    
+    if (professionals.length === 0) {
+      // Se nenhum profissional foi selecionado, mostrar todos
+      setFilteredProfessionals(null);
+      return;
+    }
+    
+    // Filtra profissionais da tabela de acordo com a seleção
+    const selectedIds = professionals.map(p => p.id);
+    const filtered = data.profissionais.filter(prof => 
+      selectedIds.includes(prof.id)
+    );
+    
+    setFilteredProfessionals(filtered);
+  };
+  
+  // Função para aplicar filtros
+  const handleFilterApply = (options: { showEmptySlots: boolean, activityTypes: string[] }) => {
+    setFilterOptions(options);
+    
+    // Aplicar os filtros e atualizar a UI
+    toast({
+      title: "Filtros aplicados",
+      description: `${options.activityTypes.length} tipo(s) de atividade selecionado(s)`,
+    });
   };
   
   // Estatísticas agora são calculadas dinamicamente no componente ScheduleStats
@@ -237,8 +268,8 @@ export default function Schedule() {
         <ScheduleActions 
           selectedDay={selectedDay}
           lastUpdate={lastUpdate}
-          onSearch={handleSearch}
-          onOpenNewModal={handleNewActivity}
+          onSearch={handleProfessionalsSearch}
+          onFilter={handleFilterApply}
         />
         
         {/* Tabela de horários - Com mais espaço para o cabeçalho fixo */}
@@ -249,6 +280,8 @@ export default function Schedule() {
             isLoading={isLoading}
             onCellClick={handleCellClick}
             onSelectedCellsChange={setSelectedCells}
+            filteredProfessionals={filteredProfessionals}
+            filterOptions={filterOptions}
           />
         </div>
         
