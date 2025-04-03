@@ -233,6 +233,10 @@ export function ScheduleTable({
                   // Obter as cores do tipo de atividade (seja do objeto ou do código)
                   const colors = getActivityColor(activityTypeObj || activityCode);
                   
+                  // Verificar se a atividade tem uma cor personalizada
+                  const customColor = activityTypeObj?.color || "";
+                  const useCustomDot = colors.dot === "bg-custom-color";
+                  
                   return (
                     <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">
                       <div 
@@ -242,7 +246,14 @@ export function ScheduleTable({
                         onClick={() => handleCellClick(professional, timeSlot, activity)}
                       >
                         <div className="flex items-center mb-1">
-                          <div className={`h-3 w-3 rounded-full ${colors.dot} mr-2`}></div>
+                          {useCustomDot ? (
+                            <div 
+                              className="h-3 w-3 rounded-full mr-2" 
+                              style={{ backgroundColor: customColor }}
+                            ></div>
+                          ) : (
+                            <div className={`h-3 w-3 rounded-full ${colors.dot} mr-2`}></div>
+                          )}
                           <span className={`text-xs font-medium ${colors.text}`}>
                             {activityName}
                           </span>
