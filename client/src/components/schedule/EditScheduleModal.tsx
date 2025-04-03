@@ -26,6 +26,7 @@ import {
   type WeekDay, 
   type ActivityType
 } from "@shared/schema";
+import { type SelectedCell } from "./ScheduleTable";
 import { getActivityName } from "@/utils/activityColors";
 import { useQuery } from "@tanstack/react-query";
 
@@ -54,6 +55,7 @@ interface EditScheduleModalProps {
   };
   weekday: WeekDay;
   isNew?: boolean;
+  selectedCells?: SelectedCell[];
 }
 
 export function EditScheduleModal({
@@ -64,7 +66,8 @@ export function EditScheduleModal({
   timeSlot,
   currentActivity,
   weekday,
-  isNew = false
+  isNew = false,
+  selectedCells = []
 }: EditScheduleModalProps) {
   const [selectedActivity, setSelectedActivity] = useState<string>(currentActivity?.atividade || "disponivel");
   
@@ -135,51 +138,48 @@ export function EditScheduleModal({
         </DialogHeader>
         
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
-          <div className="mb-4">
-            <Label htmlFor="professional">Profissional</Label>
-            <div className="flex items-center bg-gray-100 p-2 rounded mt-1">
-              <div className="h-6 w-6 flex-shrink-0 rounded-full bg-primary-100 flex items-center justify-center mr-2">
-                <span className="text-primary-700 font-medium text-xs">{professional?.iniciais}</span>
+          {selectedCells.length > 1 ? (
+            <div className="mb-4">
+              <Label htmlFor="multipleCells">Seleção múltipla</Label>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded mt-1">
+                <p className="text-sm text-amber-800 font-medium mb-1">
+                  {selectedCells.length} células selecionadas
+                </p>
+                <p className="text-xs text-amber-700">
+                  A atividade será aplicada a todas as células selecionadas, cada uma com seu respectivo horário e profissional.
+                </p>
               </div>
-              <span className="text-sm">{professional?.nome}</span>
+              <input type="hidden" {...register("professionalId")} />
+              <input type="hidden" {...register("weekday")} />
+              <input type="hidden" {...register("startTime")} />
+              <input type="hidden" {...register("endTime")} />
             </div>
-            <input type="hidden" {...register("professionalId")} />
-            <input type="hidden" {...register("weekday")} />
-          </div>
-          
-          <div className="mb-4">
-            <Label htmlFor="timeRange">Horário</Label>
-            <div className="flex gap-2 mt-1">
-              <div className="w-1/2">
-                <Label htmlFor="startTime" className="text-xs text-gray-500">Início</Label>
-                <Input
-                  type="time"
-                  id="startTime"
-                  step="60"
-                  {...register("startTime")}
-                  className="mt-1"
-                />
-                {errors.startTime && (
-                  <p className="text-xs text-red-500 mt-1">{errors.startTime.message}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Ex: 14:15</p>
+          ) : (
+            <>
+              <div className="mb-4">
+                <Label htmlFor="professional">Profissional</Label>
+                <div className="flex items-center bg-gray-100 p-2 rounded mt-1">
+                  <div className="h-6 w-6 flex-shrink-0 rounded-full bg-primary-100 flex items-center justify-center mr-2">
+                    <span className="text-primary-700 font-medium text-xs">{professional?.iniciais}</span>
+                  </div>
+                  <span className="text-sm">{professional?.nome}</span>
+                </div>
+                <input type="hidden" {...register("professionalId")} />
+                <input type="hidden" {...register("weekday")} />
               </div>
-              <div className="w-1/2">
-                <Label htmlFor="endTime" className="text-xs text-gray-500">Fim</Label>
-                <Input
-                  type="time"
-                  id="endTime"
-                  step="60"
-                  {...register("endTime")}
-                  className="mt-1"
-                />
-                {errors.endTime && (
-                  <p className="text-xs text-red-500 mt-1">{errors.endTime.message}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Ex: 15:45</p>
+              
+              <div className="mb-4">
+                <Label htmlFor="timeRange">Horário</Label>
+                <div className="bg-gray-100 p-3 rounded mt-1">
+                  <p className="text-sm font-medium">{timeSlot?.startTime} - {timeSlot?.endTime}</p>
+                  <p className="text-xs text-gray-500 mt-1">O horário é definido pela célula selecionada na grade</p>
+                </div>
+                {/* Mantemos os campos ocultos para que o formulário continue funcionando */}
+                <input type="hidden" {...register("startTime")} />
+                <input type="hidden" {...register("endTime")} />
               </div>
-            </div>
-          </div>
+            </>
+          )}
           
           <div className="mb-4">
             <Label htmlFor="activityCode">Atividade</Label>
@@ -233,7 +233,7 @@ export function EditScheduleModal({
               Cancelar
             </Button>
             <Button type="submit">
-              Salvar
+              {selectedCells.length > 1 ? `Aplicar a ${selectedCells.length} células` : 'Salvar'}
             </Button>
           </DialogFooter>
         </form>

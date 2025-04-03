@@ -20,7 +20,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { DaySelector } from "@/components/schedule/DaySelector";
 import { ScheduleActions } from "@/components/schedule/ScheduleActions";
-import { ScheduleTable } from "@/components/schedule/ScheduleTable";
+import { ScheduleTable, type SelectedCell } from "@/components/schedule/ScheduleTable";
 import { ScheduleLegend } from "@/components/schedule/ScheduleLegend";
 import { ScheduleStats } from "@/components/schedule/ScheduleStats";
 import { EditScheduleModal } from "@/components/schedule/EditScheduleModal";
@@ -36,6 +36,7 @@ export default function Schedule() {
   const [selectedProfessional, setSelectedProfessional] = useState<ScheduleProfessional | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<ScheduleTimeSlot | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<ScheduleActivity | undefined>(undefined);
+  const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
   
   // Debug para verificar o que está sendo selecionado
   useEffect(() => {
@@ -165,7 +166,48 @@ export default function Schedule() {
   // Função para salvar a atividade
   const handleSaveActivity = (formData: ScheduleFormValues) => {
     console.log("Salvando atividade:", formData);
-    saveSchedule(formData);
+    
+    // Se houver mais de uma célula selecionada, aplicar a mesma atividade a todas elas
+    if (selectedCells && selectedCells.length > 1) {
+      // Criar promessas para todas as requisições
+      const savePromises = selectedCells.map(cell => {
+        // Cria um novo objeto de formulário para cada célula, mantendo os valores do formulário original
+        // mas ajustando o profissional e o horário para a célula específica
+        const cellFormData: ScheduleFormValues = {
+          ...formData,
+          professionalId: cell.professional.id,
+          startTime: cell.timeSlot.startTime,
+          endTime: cell.timeSlot.endTime
+        };
+        
+        // Retorna a promessa da requisição
+        return apiRequest("POST", "/api/schedules", cellFormData);
+      });
+      
+      // Executa todas as promessas
+      Promise.all(savePromises)
+        .then(() => {
+          toast({
+            title: "Atividades em lote criadas",
+            description: `Foram criadas ${selectedCells.length} atividades com sucesso.`,
+            variant: "default",
+          });
+          
+          // Atualiza a lista de escalas
+          queryClient.invalidateQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
+          closeModal();
+        })
+        .catch(error => {
+          toast({
+            title: "Erro",
+            description: `Falha ao criar atividades em lote: ${error.message}`,
+            variant: "destructive",
+          });
+        });
+    } else {
+      // Comportamento padrão para uma única célula
+      saveSchedule(formData);
+    }
   };
   
   // Função para filtrar por profissional
@@ -211,6 +253,7 @@ export default function Schedule() {
           timeSlots={timeSlots}
           isLoading={isLoading}
           onCellClick={handleCellClick}
+          onSelectedCellsChange={setSelectedCells}
         />
         
         {/* Legenda */}
@@ -235,6 +278,7 @@ export default function Schedule() {
             } : undefined}
             weekday={selectedDay}
             isNew={isNewActivity}
+            selectedCells={selectedCells}
           />
         )}
       </main>

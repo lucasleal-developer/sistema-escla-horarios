@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   type ActivityType, 
   type ScheduleTimeSlot,
@@ -8,6 +8,14 @@ import {
 } from "@shared/schema";
 import { getActivityColor, getActivityName } from "@/utils/activityColors";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+
+// Interface para rastrear células selecionadas
+export interface SelectedCell {
+  professional: ScheduleProfessional;
+  timeSlot: ScheduleTimeSlot;
+  activity?: ScheduleActivity;
+}
 
 // Função auxiliar para converter horário em minutos (para cálculos)
 function timeToMinutes(time: string): number {
@@ -20,14 +28,18 @@ interface ScheduleTableProps {
   timeSlots: ScheduleTimeSlot[];
   isLoading: boolean;
   onCellClick: (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot, activity?: ScheduleActivity) => void;
+  onSelectedCellsChange?: (cells: SelectedCell[]) => void;
 }
 
 export function ScheduleTable({ 
   data, 
   timeSlots, 
   isLoading, 
-  onCellClick 
+  onCellClick,
+  onSelectedCellsChange 
 }: ScheduleTableProps) {
+  const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   
   // Buscar os tipos de atividades para obter as cores
   const { data: activityTypesData } = useQuery({
@@ -39,44 +51,70 @@ export function ScheduleTable({
     return professional.horarios.find(h => h.hora === startTime);
   };
   
+  // Função para alternar a seleção de uma célula
+  const toggleCellSelection = (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot, activity?: ScheduleActivity) => {
+    const cellKey = `${professional.id}-${timeSlot.startTime}`;
+    
+    // Verificar se a célula já está selecionada
+    const isSelected = selectedCells.some(
+      cell => cell.professional.id === professional.id && cell.timeSlot.startTime === timeSlot.startTime
+    );
+    
+    if (isSelected) {
+      // Remover da seleção
+      setSelectedCells(prev => prev.filter(
+        cell => !(cell.professional.id === professional.id && cell.timeSlot.startTime === timeSlot.startTime)
+      ));
+    } else {
+      // Adicionar à seleção
+      setSelectedCells(prev => [...prev, { professional, timeSlot, activity }]);
+    }
+  };
+  
+  // Função para verificar se uma célula está selecionada
+  const isCellSelected = (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot) => {
+    return selectedCells.some(
+      cell => cell.professional.id === professional.id && cell.timeSlot.startTime === timeSlot.startTime
+    );
+  };
+  
+  // Função para lidar com clique nas células
+  const handleCellClick = (professional: ScheduleProfessional, timeSlot: ScheduleTimeSlot, activity?: ScheduleActivity) => {
+    if (isSelectionMode) {
+      toggleCellSelection(professional, timeSlot, activity);
+    } else {
+      onCellClick(professional, timeSlot, activity);
+    }
+  };
+  
+  // Função para editar todas as células selecionadas
+  const editSelectedCells = () => {
+    if (selectedCells.length > 0) {
+      // Usar a primeira célula selecionada como referência
+      const firstCell = selectedCells[0];
+      onCellClick(firstCell.professional, firstCell.timeSlot, firstCell.activity);
+    }
+  };
+  
+  // Função para limpar a seleção
+  const clearSelection = () => {
+    setSelectedCells([]);
+  };
+  
   // Função para encontrar um tipo de atividade pelo código
   const findActivityTypeByCode = (code: string) => {
     if (!activityTypesData || !Array.isArray(activityTypesData)) return undefined;
     return activityTypesData.find((type: ActivityType) => type.code === code);
   };
   
-  // Função para calcular a altura da atividade baseada em sua duração
-  const calculateActivityHeight = (activity: ScheduleActivity, timeSlot: ScheduleTimeSlot) => {
-    // Se a atividade começar e terminar exatamente no slot, altura padrão
-    if (activity.hora === timeSlot.startTime && activity.horaFim === timeSlot.endTime) {
-      return {}; // Retorna objeto vazio, usa a altura padrão
+  // Removemos a função de cálculo proporcional da altura das células, conforme solicitado
+  
+  // Efeito para notificar o componente pai sobre mudanças nas células selecionadas
+  useEffect(() => {
+    if (onSelectedCellsChange) {
+      onSelectedCellsChange(selectedCells);
     }
-    
-    // Converte horários para minutos para calcular duração
-    const activityStart = timeToMinutes(activity.hora);
-    const activityEnd = timeToMinutes(activity.horaFim);
-    const slotStart = timeToMinutes(timeSlot.startTime);
-    const slotEnd = timeToMinutes(timeSlot.endTime);
-    
-    // Duração padrão de um slot (geralmente 30 min)
-    const slotDuration = slotEnd - slotStart;
-    
-    // Duração total da atividade
-    const activityDuration = activityEnd - activityStart;
-    
-    // Calcular proporção de altura
-    const heightRatio = activityDuration / slotDuration;
-    
-    // Altura mínima garantida
-    const minHeight = 70; // px
-    const calculatedHeight = Math.max(minHeight, minHeight * heightRatio);
-    
-    return {
-      height: `${calculatedHeight}px`,
-      display: 'flex',
-      flexDirection: 'column' as const
-    };
-  };
+  }, [selectedCells, onSelectedCellsChange]);
   
   // Memorizar os profissionais para evitar recálculos desnecessários
   const professionals = useMemo(() => {
@@ -107,6 +145,44 @@ export function ScheduleTable({
   
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+      {/* Controles para seleção múltipla */}
+      <div className="bg-gray-50 p-3 border-b flex flex-wrap items-center gap-2">
+        <Button
+          variant={isSelectionMode ? "default" : "outline"}
+          size="sm"
+          onClick={() => setIsSelectionMode(!isSelectionMode)}
+          className="mr-2"
+        >
+          {isSelectionMode ? "Desativar seleção" : "Ativar seleção múltipla"}
+        </Button>
+        
+        {isSelectionMode && (
+          <>
+            <span className="text-sm text-gray-500 mr-2">
+              {selectedCells.length} células selecionadas
+            </span>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelection}
+              disabled={selectedCells.length === 0}
+            >
+              Limpar seleção
+            </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              onClick={editSelectedCells}
+              disabled={selectedCells.length === 0}
+            >
+              Editar selecionados
+            </Button>
+          </>
+        )}
+      </div>
+      
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -150,9 +226,10 @@ export function ScheduleTable({
                   return (
                     <td key={`${professional.id}-${timeSlot.startTime}`} className="px-1 py-1">
                       <div 
-                        className={`${colors.bg} ${colors.hoverBg} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative`}
-                        onClick={() => onCellClick(professional, timeSlot, activity)}
-                        style={activity ? calculateActivityHeight(activity, timeSlot) : {}}
+                        className={`${colors.bg} ${colors.hoverBg} rounded p-2 cursor-pointer transition duration-150 ease-in-out min-h-[70px] relative
+                          ${isSelectionMode && isCellSelected(professional, timeSlot) ? 'ring-2 ring-offset-1 ring-primary' : ''}
+                        `}
+                        onClick={() => handleCellClick(professional, timeSlot, activity)}
                       >
                         <div className="flex items-center mb-1">
                           <div className={`h-3 w-3 rounded-full ${colors.dot} mr-2`}></div>
