@@ -144,9 +144,9 @@ export function ScheduleTable({
   }
   
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-      {/* Controles para seleção múltipla - agora com o botão de ativar à direita */}
-      <div className="bg-gray-50 p-3 border-b flex flex-wrap items-center justify-between gap-2 sticky top-0 z-20">
+    <div className="bg-white shadow rounded-lg overflow-hidden mb-6 relative flex flex-col">
+      {/* Controles para seleção múltipla - fixo no topo da página */}
+      <div className="bg-gray-50 p-3 border-b flex flex-wrap items-center justify-between gap-2 sticky top-0 z-40 w-full">
         <div className="flex items-center gap-2">
           {isSelectionMode && (
             <>
@@ -184,9 +184,9 @@ export function ScheduleTable({
         </Button>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[calc(100vh-240px)]">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-[52px] z-10"> 
+          <thead className="bg-gray-50 sticky top-0 z-30">
             <tr>
               <th scope="col" className="sticky left-0 z-30 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] shadow-sm">
                 Horário
@@ -206,7 +206,7 @@ export function ScheduleTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {timeSlots.map(timeSlot => (
               <tr key={timeSlot.startTime}>
-                <td className="sticky left-0 z-10 bg-white px-4 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                <td className="sticky left-0 z-20 bg-white px-4 py-4 text-sm font-medium text-gray-900 whitespace-nowrap shadow-sm">
                   {timeSlot.startTime} - {timeSlot.endTime}
                 </td>
                 {professionals.map(professional => {

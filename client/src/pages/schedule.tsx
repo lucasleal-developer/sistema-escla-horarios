@@ -232,7 +232,7 @@ export default function Schedule() {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
       
-      <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         {/* Seletor de dias */}
         <DaySelector 
           selectedDay={selectedDay} 
@@ -247,14 +247,16 @@ export default function Schedule() {
           onOpenNewModal={handleNewActivity}
         />
         
-        {/* Tabela de horários */}
-        <ScheduleTable 
-          data={data || null}
-          timeSlots={timeSlots}
-          isLoading={isLoading}
-          onCellClick={handleCellClick}
-          onSelectedCellsChange={setSelectedCells}
-        />
+        {/* Tabela de horários - Com mais espaço para o cabeçalho fixo */}
+        <div className="mt-2">
+          <ScheduleTable 
+            data={data || null}
+            timeSlots={timeSlots}
+            isLoading={isLoading}
+            onCellClick={handleCellClick}
+            onSelectedCellsChange={setSelectedCells}
+          />
+        </div>
         
         {/* Legenda */}
         <ScheduleLegend />
