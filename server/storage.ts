@@ -7,10 +7,9 @@ import {
   defaultActivityTypes,
   type WeekDay
 } from "@shared/schema";
-import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, and } from "drizzle-orm";
-import pg from "pg";
-const { Pool } = pg;
+import { pool, db } from "./db";
+const { Pool } = require("pg");
 
 // Interface de armazenamento
 export interface IStorage {
@@ -322,17 +321,15 @@ export class MemStorage implements IStorage {
 
 // Implementação de armazenamento com PostgreSQL
 export class PostgresStorage implements IStorage {
-  private db: ReturnType<typeof drizzle>;
-  private client: any;
+  private db: typeof db;
   
   constructor(connectionString: string) {
-    this.client = new Pool({ connectionString });
-    this.db = drizzle(this.client);
+    this.db = db;
   }
 
   async connect() {
     try {
-      // Pool já está conectado, não precisamos chamar connect()
+      await pool.connect();
       console.log("Connected to PostgreSQL database");
       await this.setupDatabase();
     } catch (error) {
@@ -420,7 +417,11 @@ export class PostgresStorage implements IStorage {
   }
 
   async createProfessional(professional: InsertProfessional): Promise<Professional> {
-    const result = await this.db.insert(professionals).values(professional).returning();
+    const result = await this.db.insert(professionals).values({
+      name: professional.name,
+      initials: professional.initials,
+      active: professional.active || 1
+    }).returning();
     return result[0];
   }
 
@@ -479,7 +480,12 @@ export class PostgresStorage implements IStorage {
   }
 
   async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
-    const result = await this.db.insert(timeSlots).values(timeSlot).returning();
+    const result = await this.db.insert(timeSlots).values({
+      startTime: timeSlot.startTime,
+      endTime: timeSlot.endTime,
+      interval: timeSlot.interval || 30,
+      isBaseSlot: timeSlot.isBaseSlot || 1
+    }).returning();
     return result[0];
   }
 
@@ -503,12 +509,27 @@ export class PostgresStorage implements IStorage {
   }
 
   async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
-    const result = await this.db.insert(schedules).values(schedule).returning();
+    const result = await this.db.insert(schedules).values({
+      professionalId: schedule.professionalId,
+      weekday: schedule.weekday,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      activityCode: schedule.activityCode,
+      location: schedule.location || null,
+      notes: schedule.notes || null,
+      updatedAt: new Date()
+    }).returning();
     return result[0];
   }
 
   async updateSchedule(id: number, data: Partial<InsertSchedule>): Promise<Schedule | undefined> {
-    const result = await this.db.update(schedules).set(data).where(eq(schedules.id, id)).returning();
+    const result = await this.db.update(schedules)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schedules.id, id))
+      .returning();
     return result[0];
   }
 
