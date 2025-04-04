@@ -234,7 +234,7 @@ export const activityNames: Record<string, string> = {
   "evento": "Evento",
   "ferias": "Férias",
   "licenca": "Licença",
-  "disponivel_horario": "Disponível"
+  "disponivel_horario": "Indisponível"
 };
 
 // Obter nome de uma atividade

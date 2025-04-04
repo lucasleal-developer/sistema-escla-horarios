@@ -259,7 +259,7 @@ export class MemStorage implements IStorage {
       { name: "Evento", code: "evento", color: "#ef4444" },
       { name: "Férias", code: "ferias", color: "#06b6d4" },
       { name: "Licença", code: "licenca", color: "#64748b" },
-      { name: "Disponível", code: "disponivel", color: "#6b7280" }
+      { name: "Indisponível", code: "disponivel", color: "#6b7280" }
     ];
     
     activityTypes.forEach(at => this.createActivityType(at));
@@ -286,7 +286,7 @@ export class MemStorage implements IStorage {
     const segundaSchedules: InsertSchedule[] = [
       { professionalId: 1, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "aula", location: "Sala 101", notes: "Matemática" },
       { professionalId: 2, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "aula", location: "Sala 203", notes: "Português" },
-      { professionalId: 3, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "disponivel", location: "", notes: "" },
+      { professionalId: 3, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "disponivel_horario", location: "", notes: "" },
       { professionalId: 4, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "estudo", location: "Biblioteca", notes: "Preparação de aulas" },
       { professionalId: 5, weekday: "segunda", startTime: "08:00", endTime: "09:30", activityCode: "plantao", location: "Sala Professores", notes: "Plantão de dúvidas" },
       
@@ -294,7 +294,7 @@ export class MemStorage implements IStorage {
       { professionalId: 2, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "aula", location: "Sala 203", notes: "Português" },
       { professionalId: 3, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "reuniao", location: "Sala Reuniões", notes: "Reunião pedagógica" },
       { professionalId: 4, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "aula", location: "Lab Química", notes: "Química" },
-      { professionalId: 5, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "disponivel", location: "", notes: "" },
+      { professionalId: 5, weekday: "segunda", startTime: "09:45", endTime: "11:15", activityCode: "disponivel_horario", location: "", notes: "" },
       
       { professionalId: 1, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "aula", location: "Sala 101", notes: "Matemática" },
       { professionalId: 2, weekday: "segunda", startTime: "13:30", endTime: "15:00", activityCode: "licenca", location: "", notes: "Licença médica" },

@@ -38,7 +38,7 @@ export const defaultActivityTypes = [
   { code: "evento", name: "Evento", color: "#ef4444" },
   { code: "ferias", name: "Férias", color: "#06b6d4" },
   { code: "licenca", name: "Licença", color: "#64748b" },
-  { code: "disponivel_horario", name: "Disponível", color: "#6b7280" },
+  { code: "disponivel_horario", name: "Indisponível", color: "#6b7280" },
 ];
 
 // Lista de códigos de atividades para uso nos componentes

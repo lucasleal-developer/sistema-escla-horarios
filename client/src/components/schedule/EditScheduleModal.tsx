@@ -69,7 +69,7 @@ export function EditScheduleModal({
   isNew = false,
   selectedCells = []
 }: EditScheduleModalProps) {
-  const [selectedActivity, setSelectedActivity] = useState<string>(currentActivity?.atividade || "disponivel");
+  const [selectedActivity, setSelectedActivity] = useState<string>(currentActivity?.atividade || "disponivel_horario");
   
   // Buscar tipos de atividade do servidor
   const { data: activityTypes = [] } = useQuery({
@@ -84,7 +84,7 @@ export function EditScheduleModal({
       weekday: weekday,
       startTime: timeSlot?.startTime || "",
       endTime: timeSlot?.endTime || "",
-      activityCode: currentActivity?.atividade || "disponivel",
+      activityCode: currentActivity?.atividade || "disponivel_horario",
       location: currentActivity?.local || "",
       notes: currentActivity?.observacoes || ""
     }
@@ -93,7 +93,7 @@ export function EditScheduleModal({
   // Atualiza o formulário quando os props mudam
   useEffect(() => {
     if (isOpen) {
-      const activityValue = currentActivity?.atividade || "disponivel";
+      const activityValue = currentActivity?.atividade || "disponivel_horario";
       setSelectedActivity(activityValue);
       
       reset({
@@ -192,8 +192,8 @@ export function EditScheduleModal({
                 <SelectValue placeholder="Selecione uma atividade" />
               </SelectTrigger>
               <SelectContent>
-                {/* Opção padrão para disponível */}
-                <SelectItem value="disponivel_horario">Disponível</SelectItem>
+                {/* Opção padrão para indisponível */}
+                <SelectItem value="disponivel_horario">Indisponível</SelectItem>
                 
                 {/* Tipos de atividade do banco de dados */}
                 {Array.isArray(activityTypes) && activityTypes.map((activity: any) => (
