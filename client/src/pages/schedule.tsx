@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import { 
   type WeekDay, 
   type ScheduleFormValues, 
@@ -38,6 +39,18 @@ export default function Schedule() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<ScheduleTimeSlot | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<ScheduleActivity | undefined>(undefined);
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
+  const [location] = useLocation();
+  
+  // Efeito para recarregar os dados dos profissionais sempre que a página for acessada
+  useEffect(() => {
+    // Recarregar dados de profissionais
+    queryClient.invalidateQueries({ queryKey: ['/api/professionals'] });
+    queryClient.refetchQueries({ queryKey: ['/api/professionals'] });
+    
+    // Recarregar dados de escalas
+    queryClient.invalidateQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
+    queryClient.refetchQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
+  }, [location, selectedDay]);
   
   // Debug para verificar o que está sendo selecionado
   useEffect(() => {
