@@ -8,10 +8,11 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { Search, Filter, X, Check } from "lucide-react";
+import { Search, Filter, X, Check, Link, Copy, Share2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { type Professional } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 // Interface adaptada para Professional com campos em português
 interface ProfessionalDisplay {
@@ -26,6 +27,7 @@ interface ScheduleActionsProps {
   lastUpdate?: string;
   onSearch: (professionals: {id: number, nome: string, iniciais: string}[]) => void;
   onFilter: (filters: FilterOptions) => void;
+  initialProfessionals?: {id: number, nome: string, iniciais: string}[];
 }
 
 export interface FilterOptions {
@@ -37,16 +39,33 @@ export function ScheduleActions({
   selectedDay, 
   lastUpdate, 
   onSearch,
-  onFilter
+  onFilter,
+  initialProfessionals = []
 }: ScheduleActionsProps) {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<ProfessionalDisplay[]>([]);
-  const [selectedProfessionals, setSelectedProfessionals] = useState<ProfessionalDisplay[]>([]);
+  const [selectedProfessionals, setSelectedProfessionals] = useState<ProfessionalDisplay[]>(initialProfessionals);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    showEmptySlots: true,
-    activityTypes: []
-  });
+  // Inicializar com os valores do URL se disponíveis
+  const getInitialFilterOptions = () => {
+    const url = new URL(window.location.href);
+    
+    // Obter filtros de atividades da URL
+    const atividadesParam = url.searchParams.get('atividades');
+    const activityTypes = atividadesParam ? atividadesParam.split(',') : [];
+    
+    // Obter a configuração de mostrar slots vazios
+    const vaziosParam = url.searchParams.get('vazios');
+    const showEmptySlots = vaziosParam ? vaziosParam === '1' : true;
+    
+    return {
+      showEmptySlots,
+      activityTypes
+    };
+  };
+  
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(getInitialFilterOptions());
   
   const searchRef = useRef<HTMLDivElement>(null);
   
@@ -171,6 +190,53 @@ export function ScheduleActions({
     onSearch(selectedProfessionals);
   }, [selectedProfessionals, onSearch]);
   
+  // Aplicar os filtros iniciais ao carregar
+  useEffect(() => {
+    // Chamada inicial para aplicar os filtros da URL
+    onFilter(filterOptions);
+  }, [filterOptions, onFilter]);
+  
+  // Função para copiar link compartilhável
+  const copyShareableLink = () => {
+    // Constrói a URL com os parâmetros relevantes (dia, profissionais selecionados, filtros)
+    const url = new URL(window.location.href);
+    
+    // Define o dia
+    url.searchParams.set('dia', selectedDay);
+    
+    // Adiciona profissionais selecionados, se houver
+    if (selectedProfessionals.length > 0) {
+      const profIds = selectedProfessionals.map(p => p.id).join(',');
+      url.searchParams.set('profs', profIds);
+    }
+    
+    // Adiciona filtros de atividades, se houver
+    if (filterOptions.activityTypes.length > 0) {
+      url.searchParams.set('atividades', filterOptions.activityTypes.join(','));
+    }
+    
+    // Mostrar slots vazios
+    url.searchParams.set('vazios', filterOptions.showEmptySlots ? '1' : '0');
+    
+    // Copia para a área de transferência
+    navigator.clipboard.writeText(url.toString())
+      .then(() => {
+        toast({
+          title: "Link copiado!",
+          description: "O link compartilhável foi copiado para a área de transferência.",
+          variant: "default",
+        });
+      })
+      .catch((err) => {
+        toast({
+          title: "Erro ao copiar link",
+          description: "Não foi possível copiar o link. Tente novamente.",
+          variant: "destructive",
+        });
+        console.error("Erro ao copiar link:", err);
+      });
+  };
+  
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
       <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
@@ -182,6 +248,16 @@ export function ScheduleActions({
         )}
       </div>
       <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        {/* Botão de compartilhamento */}
+        <Button 
+          variant="outline" 
+          className="inline-flex items-center" 
+          onClick={copyShareableLink}
+        >
+          <Share2 className="h-4 w-4 mr-2" />
+          Copiar Link
+        </Button>
+      
         {/* Área de seleção de profissionais */}
         <div className="w-full sm:w-auto" ref={searchRef}>
           <div className="relative">

@@ -52,6 +52,67 @@ export default function Schedule() {
     queryClient.refetchQueries({ queryKey: [`/api/schedules/${selectedDay}`] });
   }, [location, selectedDay]);
   
+  // Estado para indicar quando a página é carregada via link compartilhado
+  const [isSharedLink, setIsSharedLink] = useState(false);
+  
+  // Efeito para processar os parâmetros da URL compartilhada
+  useEffect(() => {
+    // Verifica se há parâmetros na URL
+    const url = new URL(window.location.href);
+    
+    // Verificar se existe algum parâmetro que indica que é um link compartilhado
+    const hasQueryParams = url.search.length > 0;
+    if (hasQueryParams) {
+      setIsSharedLink(true);
+      
+      // Notificar o usuário que está vendo um link compartilhado
+      setTimeout(() => {
+        toast({
+          title: "Link compartilhado",
+          description: "Você está visualizando uma escala compartilhada com você.",
+          variant: "default",
+        });
+      }, 1500); // Aguardar um pouco para mostrar após o carregamento inicial
+    }
+    
+    // Verificar e processar o dia da semana
+    const diaParam = url.searchParams.get('dia');
+    if (diaParam && ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'].includes(diaParam)) {
+      setSelectedDay(diaParam as WeekDay);
+    }
+    
+    // Processar filtros de profissionais (isso será tratado após carregar os dados de profissionais)
+    const profsParam = url.searchParams.get('profs');
+    if (profsParam) {
+      const profIds = profsParam.split(',').map(Number);
+      // Armazenar os IDs para usar quando os profissionais forem carregados
+      sessionStorage.setItem('selectedProfIds', JSON.stringify(profIds));
+    }
+    
+    // Processar filtros de atividades
+    const atividadesParam = url.searchParams.get('atividades');
+    if (atividadesParam) {
+      const atividades = atividadesParam.split(',');
+      setFilterOptions(prev => ({
+        ...prev,
+        activityTypes: atividades
+      }));
+    }
+    
+    // Processar mostrar slots vazios
+    const vaziosParam = url.searchParams.get('vazios');
+    if (vaziosParam) {
+      setFilterOptions(prev => ({
+        ...prev,
+        showEmptySlots: vaziosParam === '1'
+      }));
+    }
+    
+    // Limpar URL após processar (opcional, mantém a URL limpa)
+    // Esta linha está comentada para manter os parâmetros na URL para compartilhamento
+    // window.history.replaceState({}, document.title, window.location.pathname);
+  }, []);
+  
   // Debug para verificar o que está sendo selecionado
   useEffect(() => {
     if (selectedActivity) {
@@ -78,6 +139,47 @@ export default function Schedule() {
   ];
   
   const timeSlots: ScheduleTimeSlot[] = timeSlotsData || defaultTimeSlots;
+  
+  // Estado para armazenar os profissionais selecionados para compartilhamento
+  const [selectedSharedProfessionals, setSelectedSharedProfessionals] = useState<{id: number, nome: string, iniciais: string}[]>([]);
+  
+  // Busca de profissionais para aplicar filtros da URL compartilhada
+  const { data: professionalsData } = useQuery<Professional[]>({
+    queryKey: ['/api/professionals'],
+  });
+  
+  // Efeito para processar profissionais da URL compartilhada
+  useEffect(() => {
+    if (!professionalsData) return;
+    
+    // Verifica se há IDs de profissionais armazenados para a URL compartilhada
+    const storedProfIds = sessionStorage.getItem('selectedProfIds');
+    if (storedProfIds) {
+      try {
+        const profIds = JSON.parse(storedProfIds) as number[];
+        
+        // Converte os profissionais para o formato esperado pela função de busca
+        const selectedProfs = professionalsData
+          .filter(prof => profIds.includes(prof.id))
+          .map(prof => ({
+            id: prof.id,
+            nome: prof.name,
+            iniciais: prof.initials
+          }));
+        
+        // Aplica a filtragem e atualiza o estado
+        if (selectedProfs.length > 0) {
+          setSelectedSharedProfessionals(selectedProfs);
+          handleProfessionalsSearch(selectedProfs);
+        }
+        
+        // Limpa o storage após usar
+        sessionStorage.removeItem('selectedProfIds');
+      } catch (e) {
+        console.error("Erro ao processar profissionais da URL:", e);
+      }
+    }
+  }, [professionalsData]);
   
   // Query para buscar dados da escala
   const { data, isLoading, isError } = useQuery<ScheduleTableData>({
@@ -224,12 +326,27 @@ export default function Schedule() {
     }
   };
   
+  // Obtendo parâmetros de URL para filtros iniciais
+  const getInitialFilterOptions = () => {
+    const url = new URL(window.location.href);
+    
+    // Obter filtros de atividades da URL
+    const atividadesParam = url.searchParams.get('atividades');
+    const activityTypes = atividadesParam ? atividadesParam.split(',') : [];
+    
+    // Obter a configuração de mostrar slots vazios
+    const vaziosParam = url.searchParams.get('vazios');
+    const showEmptySlots = vaziosParam ? vaziosParam === '1' : true;
+    
+    return {
+      showEmptySlots,
+      activityTypes
+    };
+  };
+  
   // Filtros aplicados na visualização
   const [filteredProfessionals, setFilteredProfessionals] = useState<ScheduleProfessional[] | null>(null);
-  const [filterOptions, setFilterOptions] = useState({
-    showEmptySlots: true,
-    activityTypes: [] as string[]
-  });
+  const [filterOptions, setFilterOptions] = useState(getInitialFilterOptions());
   
   // Função para filtrar profissionais pelo nome
   const handleProfessionalsSearch = (professionals: {id: number, nome: string, iniciais: string}[]) => {
@@ -271,6 +388,18 @@ export default function Schedule() {
       <Header />
       
       <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+        {/* Indicador de link compartilhado */}
+        {isSharedLink && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center">
+              <Share2 className="h-5 w-5 text-blue-500 mr-2" />
+              <p className="text-sm text-blue-700">
+                Você está visualizando uma escala compartilhada. Esta visualização contém filtros pré-selecionados.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {/* Seletor de dias */}
         <DaySelector 
           selectedDay={selectedDay} 
@@ -283,6 +412,7 @@ export default function Schedule() {
           lastUpdate={lastUpdate}
           onSearch={handleProfessionalsSearch}
           onFilter={handleFilterApply}
+          initialProfessionals={selectedSharedProfessionals}
         />
         
         {/* Tabela de horários - Com mais espaço para o cabeçalho fixo */}
