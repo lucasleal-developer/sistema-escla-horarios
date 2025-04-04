@@ -8,6 +8,7 @@ import { PlusCircle, X, Check, Pencil, Save } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useLocation } from "wouter";
 import { colorOptions } from "@/utils/activityColors";
 
 import {
@@ -102,12 +103,31 @@ type ProfessionalFormValues = z.infer<typeof professionalSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("activities");
   const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [timeSlotModalOpen, setTimeSlotModalOpen] = useState(false);
   const [professionalModalOpen, setProfessionalModalOpen] = useState(false);
   const [editingProfessionalId, setEditingProfessionalId] = useState<number | null>(null);
+  
+  // Verificar se o acesso é via link compartilhado e redirecionar se for
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const hasQueryParams = url.search.length > 0;
+    
+    if (hasQueryParams) {
+      // Notificar o usuário e redirecionar para a página de escalas mantendo os parâmetros
+      toast({
+        title: "Acesso restrito",
+        description: "Links compartilhados não permitem acesso às configurações do sistema.",
+        variant: "destructive",
+      });
+      
+      // Redirecionar para a página de escalas mantendo os parâmetros
+      setLocation(`/schedule${url.search}`);
+    }
+  }, []);
   
   // Query para buscar tipos de atividades
   const { 
