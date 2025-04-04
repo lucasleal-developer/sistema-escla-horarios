@@ -6,6 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
+import { Share2 } from "lucide-react";
 import { 
   type WeekDay, 
   type ScheduleFormValues, 
